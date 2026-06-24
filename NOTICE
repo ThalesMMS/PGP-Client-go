@@ -1,0 +1,7 @@
+PGP Client Go
+Copyright 2026 ThalesMMS contributors
+
+This independent Go/Fyne implementation was designed from the behavior and visual
+organization of MacPGP, provided with this project under the Apache License 2.0.
+No Swift source code, Apple app-extension binaries, or proprietary assets are
+embedded in this implementation.
