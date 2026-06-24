@@ -6,7 +6,7 @@ Icon = "../../assets/icon.png"
 Name = "PGP Client"
 ID = "com.thalesmms.pgpclientgo"
 Version = "1.0.0"
-Build = 2
+Build = 3
 
 [CanOpen]
 MimeTypes = "application/pgp-encrypted;application/pgp-signature;application/pgp-keys;"
