@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -eu
 
-: "${PGP_CLIENT_RECIPIENT:?Defina PGP_CLIENT_RECIPIENT com o fingerprint completo}"
+: "${PGP_CLIENT_RECIPIENT:?Set PGP_CLIENT_RECIPIENT to the full fingerprint}"
 CLI=${PGP_CLIENT_CLI:-pgp-client-cli}
 
 for file in "$@"; do

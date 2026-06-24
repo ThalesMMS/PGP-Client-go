@@ -53,7 +53,7 @@ type Desktop struct {
 
 func New(service *pgpcore.Service) (*Desktop, error) {
 	if service == nil {
-		return nil, errors.New("serviço OpenPGP nulo")
+		return nil, errors.New("nil OpenPGP service")
 	}
 	application := fyneapp.NewWithID("com.thalesmms.pgpclientgo")
 	application.Settings().SetTheme(MacPGPTheme{})
@@ -69,7 +69,7 @@ func New(service *pgpcore.Service) (*Desktop, error) {
 		window:     window,
 		service:    service,
 		content:    container.NewMax(),
-		status:     widget.NewLabel("Pronto"),
+		status:     widget.NewLabel("Ready"),
 		navButtons: make(map[pageID]*widget.Button),
 	}
 	if err := desktop.reloadKeys(); err != nil {
@@ -86,12 +86,12 @@ func (d *Desktop) showBackupReminder() {
 		return
 	}
 	if settings.LastBackupAt == nil {
-		d.setStatus("Backup recomendado: nenhum backup registrado")
+		d.setStatus("Backup recommended: no backup recorded")
 		return
 	}
 	dueAt := settings.LastBackupAt.Add(time.Duration(settings.BackupReminderDays) * 24 * time.Hour)
 	if !time.Now().Before(dueAt) {
-		d.setStatus("Backup recomendado: último backup em " + settings.LastBackupAt.Local().Format("02/01/2006"))
+		d.setStatus("Backup recommended: last backup on " + settings.LastBackupAt.Local().Format("2006-01-02"))
 	}
 }
 
@@ -140,13 +140,13 @@ func (d *Desktop) buildSidebar() fyne.CanvasObject {
 		d.navButtons[id] = button
 		return button
 	}
-	keysLabel := muted("CHAVES")
-	operationsLabel := muted("OPERAÇÕES")
-	settingsButton := widget.NewButtonWithIcon("Preferências", theme.SettingsIcon(), d.showSettings)
+	keysLabel := muted("KEYS")
+	operationsLabel := muted("OPERATIONS")
+	settingsButton := widget.NewButtonWithIcon("Preferences", theme.SettingsIcon(), d.showSettings)
 	settingsButton.Alignment = widget.ButtonAlignLeading
-	lockButton := widget.NewButtonWithIcon("Bloquear agora", theme.LogoutIcon(), func() {
+	lockButton := widget.NewButtonWithIcon("Lock now", theme.LogoutIcon(), func() {
 		d.service.LockNow()
-		d.setStatus("Sessão sensível bloqueada")
+		d.setStatus("Sensitive session locked")
 	})
 	lockButton.Alignment = widget.ButtonAlignLeading
 
@@ -157,13 +157,13 @@ func (d *Desktop) buildSidebar() fyne.CanvasObject {
 		nil, nil,
 		container.NewVBox(
 			keysLabel,
-			makeNav(pageKeyring, "Chaveiro", theme.StorageIcon()),
+			makeNav(pageKeyring, "Keyring", theme.StorageIcon()),
 			spacer(1, 12),
 			operationsLabel,
-			makeNav(pageEncrypt, "Criptografar", theme.LoginIcon()),
-			makeNav(pageDecrypt, "Descriptografar", theme.LogoutIcon()),
-			makeNav(pageSign, "Assinar", theme.DocumentCreateIcon()),
-			makeNav(pageVerify, "Verificar", theme.ConfirmIcon()),
+			makeNav(pageEncrypt, "Encrypt", theme.LoginIcon()),
+			makeNav(pageDecrypt, "Decrypt", theme.LogoutIcon()),
+			makeNav(pageSign, "Sign", theme.DocumentCreateIcon()),
+			makeNav(pageVerify, "Verify", theme.ConfirmIcon()),
 		),
 	)
 	padded := container.NewPadded(body)
@@ -172,24 +172,24 @@ func (d *Desktop) buildSidebar() fyne.CanvasObject {
 
 func (d *Desktop) mainMenu() *fyne.MainMenu {
 	return fyne.NewMainMenu(
-		fyne.NewMenu("Arquivo",
-			fyne.NewMenuItem("Gerar nova chave…", d.showGenerateKey),
-			fyne.NewMenuItem("Importar chave…", d.importKeyDialog),
+		fyne.NewMenu("File",
+			fyne.NewMenuItem("Generate new key...", d.showGenerateKey),
+			fyne.NewMenuItem("Import key...", d.importKeyDialog),
 			fyne.NewMenuItemSeparator(),
-			fyne.NewMenuItem("Criar backup criptografado…", d.showBackup),
-			fyne.NewMenuItem("Restaurar backup…", d.showRestore),
+			fyne.NewMenuItem("Create encrypted backup...", d.showBackup),
+			fyne.NewMenuItem("Restore backup...", d.showRestore),
 			fyne.NewMenuItemSeparator(),
-			fyne.NewMenuItem("Sair", d.app.Quit),
+			fyne.NewMenuItem("Quit", d.app.Quit),
 		),
-		fyne.NewMenu("Chaves",
-			fyne.NewMenuItem("Pesquisar no servidor…", d.showKeyserverSearch),
-			fyne.NewMenuItem("Bloquear sessão", func() {
+		fyne.NewMenu("Keys",
+			fyne.NewMenuItem("Search server...", d.showKeyserverSearch),
+			fyne.NewMenuItem("Lock session", func() {
 				d.service.LockNow()
-				d.setStatus("Sessão sensível bloqueada")
+				d.setStatus("Sensitive session locked")
 			}),
 		),
-		fyne.NewMenu("Ajuda",
-			fyne.NewMenuItem("Sobre o PGP Client", d.showAbout),
+		fyne.NewMenu("Help",
+			fyne.NewMenuItem("About PGP Client", d.showAbout),
 		),
 	)
 }
@@ -246,7 +246,7 @@ func (d *Desktop) runAsync(label string, work func() error, done func()) {
 			modal.Hide()
 			if err != nil {
 				dialog.ShowError(err, d.window)
-				d.setStatus("Falha: " + errorText(err))
+				d.setStatus("Failed: " + errorText(err))
 				return
 			}
 			if done != nil {
@@ -283,7 +283,7 @@ func (d *Desktop) runPassphraseAware(label string, attempt func(fingerprint stri
 				}
 				if err != nil {
 					dialog.ShowError(err, d.window)
-					d.setStatus("Falha: " + errorText(err))
+					d.setStatus("Failed: " + errorText(err))
 					return
 				}
 				if done != nil {
@@ -297,14 +297,14 @@ func (d *Desktop) runPassphraseAware(label string, attempt func(fingerprint stri
 
 func (d *Desktop) promptPassphrase(required *model.PassphraseRequiredError, retry func([]byte, bool)) {
 	entry := widget.NewPasswordEntry()
-	entry.SetPlaceHolder("Frase secreta")
-	remember := widget.NewCheck("Guardar no cofre do sistema", nil)
+	entry.SetPlaceHolder("Passphrase")
+	remember := widget.NewCheck("Store in system vault", nil)
 	content := container.NewVBox(
-		widget.NewLabel("Desbloquear "+required.Identity),
+		widget.NewLabel("Unlock "+required.Identity),
 		entry,
 		remember,
 	)
-	prompt := dialog.NewCustomConfirm("Frase secreta necessária", "Desbloquear", "Cancelar", content, func(ok bool) {
+	prompt := dialog.NewCustomConfirm("Passphrase required", "Unlock", "Cancel", content, func(ok bool) {
 		if !ok {
 			return
 		}
@@ -334,9 +334,9 @@ func (d *Desktop) openPath(path string) {
 	}
 	if info, err := os.Stat(path); err != nil || info.IsDir() {
 		if err == nil {
-			err = errors.New("o caminho recebido é uma pasta")
+			err = errors.New("received path is a folder")
 		}
-		d.setStatus("Arquivo inválido: " + errorText(err))
+		d.setStatus("Invalid file: " + errorText(err))
 		return
 	}
 
@@ -345,7 +345,7 @@ func (d *Desktop) openPath(path string) {
 	prefixText := string(prefix)
 	isArmoredKey := strings.Contains(prefixText, "BEGIN PGP PUBLIC KEY BLOCK") || strings.Contains(prefixText, "BEGIN PGP PRIVATE KEY BLOCK")
 	if strings.HasSuffix(lower, ".key") || strings.HasSuffix(lower, ".pub") || isArmoredKey {
-		d.runAsync("Importando chave…", func() error {
+		d.runAsync("Importing key...", func() error {
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
@@ -355,7 +355,7 @@ func (d *Desktop) openPath(path string) {
 		}, func() {
 			_ = d.reloadKeys()
 			d.showPage(pageKeyring)
-			d.setStatus("Chave importada de " + filepath.Base(path))
+			d.setStatus("Key imported from " + filepath.Base(path))
 		})
 		return
 	}
@@ -364,18 +364,18 @@ func (d *Desktop) openPath(path string) {
 		strings.Contains(prefixText, "BEGIN PGP SIGNED MESSAGE") {
 		d.pendingFile = path
 		d.showPage(pageVerify)
-		d.setStatus("Assinatura recebida: " + filepath.Base(path))
+		d.setStatus("Signature received: " + filepath.Base(path))
 		return
 	}
 	if strings.HasSuffix(lower, ".gpg") || strings.HasSuffix(lower, ".pgp") || strings.HasSuffix(lower, ".asc") || strings.Contains(prefixText, "BEGIN PGP MESSAGE") {
 		d.pendingFile = path
 		d.showPage(pageDecrypt)
-		d.setStatus("Arquivo recebido: " + filepath.Base(path))
+		d.setStatus("File received: " + filepath.Base(path))
 		return
 	}
 	d.pendingFile = path
 	d.showPage(pageEncrypt)
-	d.setStatus("Arquivo recebido: " + filepath.Base(path))
+	d.setStatus("File received: " + filepath.Base(path))
 }
 
 func readPrefix(path string, limit int64) ([]byte, error) {
@@ -390,15 +390,15 @@ func readPrefix(path string, limit int64) ([]byte, error) {
 func (d *Desktop) showAbout() {
 	text := widget.NewRichTextFromMarkdown(`# PGP Client
 
-Cliente OpenPGP multiplataforma em Go/Fyne.
+Cross-platform OpenPGP client in Go/Fyne.
 
-- Chaves RSA 2048/3072/4096
-- Criptografia, descriptografia, assinatura e verificação
-- Cofre de credenciais do sistema e cache de sessão
+- RSA 2048/3072/4096 keys
+- Encryption, decryption, signing and verification
+- System credential vault and session cache
 - Backup Argon2id + AES-256-GCM
-- Servidores HKP/HKPS
+- HKP/HKPS servers
 
-Implementação independente inspirada na organização visual do MacPGP.`)
+Independent implementation inspired by MacPGP's visual organization.`)
 	text.Wrapping = fyne.TextWrapWord
-	dialog.NewCustom("Sobre", "Fechar", container.NewPadded(text), d.window).Show()
+	dialog.NewCustom("About", "Close", container.NewPadded(text), d.window).Show()
 }

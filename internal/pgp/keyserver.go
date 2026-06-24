@@ -29,13 +29,13 @@ func NewKeyserverClient(rawURL string) (*KeyserverClient, error) {
 	}
 	base, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, fmt.Errorf("URL do servidor de chaves: %w", err)
+		return nil, fmt.Errorf("keyserver URL: %w", err)
 	}
 	if base.Scheme != "https" && !(base.Scheme == "http" && (base.Hostname() == "localhost" || base.Hostname() == "127.0.0.1")) {
-		return nil, errors.New("o servidor de chaves deve usar HTTPS")
+		return nil, errors.New("keyserver must use HTTPS")
 	}
 	if base.Host == "" {
-		return nil, errors.New("servidor de chaves inválido")
+		return nil, errors.New("invalid keyserver")
 	}
 	base.Path = strings.TrimSuffix(base.Path, "/")
 	return &KeyserverClient{
@@ -44,10 +44,10 @@ func NewKeyserverClient(rawURL string) (*KeyserverClient, error) {
 			Timeout: 20 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 5 {
-					return errors.New("excesso de redirecionamentos")
+					return errors.New("too many redirects")
 				}
 				if req.URL.Scheme != "https" && !(req.URL.Scheme == "http" && (req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1")) {
-					return errors.New("redirecionamento inseguro bloqueado")
+					return errors.New("blocked insecure redirect")
 				}
 				return nil
 			},
@@ -64,7 +64,7 @@ func (c *KeyserverClient) endpoint(path string) *url.URL {
 func (c *KeyserverClient) Search(ctx context.Context, query string) ([]model.KeyserverResult, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
-		return nil, errors.New("consulta vazia")
+		return nil, errors.New("empty query")
 	}
 	endpoint := c.endpoint("/pks/lookup")
 	params := endpoint.Query()
@@ -82,7 +82,7 @@ func (c *KeyserverClient) Search(ctx context.Context, query string) ([]model.Key
 func (c *KeyserverClient) Fetch(ctx context.Context, fingerprintOrKeyID string) ([]byte, error) {
 	search := strings.TrimSpace(fingerprintOrKeyID)
 	if search == "" {
-		return nil, errors.New("fingerprint ou Key ID vazio")
+		return nil, errors.New("empty fingerprint or Key ID")
 	}
 	if !strings.Contains(search, "@") && !strings.HasPrefix(strings.ToLower(search), "0x") {
 		search = "0x" + strings.ReplaceAll(search, " ", "")
@@ -116,7 +116,7 @@ func (c *KeyserverClient) do(ctx context.Context, method, endpoint string, body 
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("servidor de chaves: %w", err)
+		return nil, fmt.Errorf("keyserver: %w", err)
 	}
 	defer resp.Body.Close()
 	limited := io.LimitReader(resp.Body, maxKeyserverResponse+1)
@@ -125,14 +125,14 @@ func (c *KeyserverClient) do(ctx context.Context, method, endpoint string, body 
 		return nil, err
 	}
 	if len(data) > maxKeyserverResponse {
-		return nil, errors.New("resposta do servidor de chaves excede 16 MiB")
+		return nil, errors.New("keyserver response exceeds 16 MiB")
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		message := strings.TrimSpace(string(data))
 		if len(message) > 500 {
 			message = message[:500]
 		}
-		return nil, fmt.Errorf("servidor de chaves respondeu %s: %s", resp.Status, message)
+		return nil, fmt.Errorf("keyserver responded %s: %s", resp.Status, message)
 	}
 	return data, nil
 }

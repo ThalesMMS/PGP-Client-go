@@ -1,79 +1,78 @@
-# Arquitetura
+# Architecture
 
-## Objetivos
+## Goals
 
-A estrutura separa apresentação, casos de uso criptográficos e persistência. Isso evita que callbacks Fyne implementem regras de segurança e permite que GUI, CLI e testes usem a mesma semântica.
+The structure separates presentation, cryptographic use cases and persistence. This prevents Fyne callbacks from implementing security rules and lets the GUI, CLI and tests use the same semantics.
 
-## Camadas
+## Layers
 
 ### `internal/model`
 
-Contém DTOs, enums e erros compartilhados: projeção de chave, preferências, solicitações de criptografia, descriptografia, assinatura, verificação e resultados.
+Contains shared DTOs, enums and errors: key projection, preferences, encryption, decryption, signing and verification requests and results.
 
 ### `internal/storage`
 
-Responsável por:
+Responsible for:
 
-- diretório de configuração;
-- certificados públicos e privados ASCII-armored;
-- metadados locais de confiança/verificação;
-- preferências;
-- abstração do cofre nativo;
-- cache temporário de frases secretas.
+- configuration directory;
+- ASCII-armored public and private certificates;
+- local trust/verification metadata;
+- preferences;
+- native vault abstraction;
+- temporary passphrase cache.
 
-A abstração `SecretStore` permite substituir o cofre do sistema por uma implementação em memória nos testes.
+The `SecretStore` abstraction allows tests to replace the system vault with an in-memory implementation.
 
 ### `internal/pgp`
 
-`Service` é a fachada de casos de uso. Ele coordena:
+`Service` is the use-case facade. It coordinates:
 
-- geração, importação, exportação, revogação e remoção de chaves;
-- desbloqueio e obtenção de frases secretas;
-- criptografia/descriptografia em memória ou streaming;
-- assinatura/verificação em memória ou streaming;
-- backup e restauração;
+- key generation, import, export, revocation and removal;
+- unlocking and passphrase retrieval;
+- in-memory or streaming encryption/decryption;
+- in-memory or streaming signing/verification;
+- backup and restore;
 - HKP/HKPS.
 
-A camada usa GopenPGP e ProtonMail `go-crypto`, mas não conhece widgets, diálogos ou estado de janela.
+The layer uses GopenPGP and ProtonMail `go-crypto`, but does not know about widgets, dialogs or window state.
 
 ### `internal/ui`
 
-`Desktop` mantém apenas estado de apresentação: página atual, chave selecionada, arquivo recebido e referências Fyne. Operações potencialmente lentas são executadas fora da thread de UI e seus resultados retornam por `fyne.Do`.
+`Desktop` keeps only presentation state: current page, selected key, received file and Fyne references. Potentially slow operations run outside the UI thread and return their results through `fyne.Do`.
 
 ### `internal/fileutil`
 
-Centraliza a escrita transacional. `PendingFile` permite adiar a confirmação até depois de validações, como a verificação de uma assinatura inline.
+Centralizes transactional writes. `PendingFile` allows confirmation to be delayed until after validations, such as inline signature verification.
 
 ### `cmd`
 
-- `pgp-client` cria o serviço padrão, encaminha argumentos de arquivos e inicia a GUI.
-- `pgp-client-cli` expõe os mesmos casos de uso para scripts, CI e integrações do sistema.
+- `pgp-client` creates the default service, forwards file arguments and starts the GUI.
+- `pgp-client-cli` exposes the same use cases to scripts, CI and system integrations.
 
-## Fluxo de dependências
+## Dependency Flow
 
 ```text
-cmd/pgp-client     ─┐
-                    ├─> internal/pgp ─> internal/storage ─> filesystem/keyring
-internal/ui        ─┘        │
-                             ├─> internal/model
-                             └─> internal/fileutil
+cmd/pgp-client     -> internal/pgp -> internal/storage -> filesystem/keyring
+internal/ui        ->      |               |
+                           |               -> internal/model
+                           -> internal/fileutil
 
-cmd/pgp-client-cli ──────────┘
+cmd/pgp-client-cli -> internal/pgp
 ```
 
-`storage` não depende de `pgp` ou `ui`; `pgp` não depende de `ui`. Esse sentido reduz ciclos e permite substituir infraestrutura em testes.
+`storage` does not depend on `pgp` or `ui`; `pgp` does not depend on `ui`. This direction reduces cycles and allows infrastructure replacement in tests.
 
-## Concorrência
+## Concurrency
 
-- `Service` protege preferências com `RWMutex`.
-- `Store` serializa mutações do chaveiro e dos JSONs.
-- `SecretCache` protege seu mapa e sobrescreve buffers removidos.
-- A UI executa casos de uso em goroutines e faz mutações visuais na thread Fyne.
-- Operações de arquivos observam `context.Context` em blocos de 128 KiB.
+- `Service` protects preferences with `RWMutex`.
+- `Store` serializes keyring and JSON mutations.
+- `SecretCache` protects its map and overwrites removed buffers.
+- The UI runs use cases in goroutines and performs visual mutations on the Fyne thread.
+- File operations observe `context.Context` in 128 KiB blocks.
 
-## Persistência
+## Persistence
 
-Arquivos são gravados no mesmo diretório do destino e confirmados por rename. Isso evita arquivos finais parciais em falhas de escrita, cancelamento ou validação. O formato do chaveiro é deliberadamente simples e auditável:
+Files are written in the same directory as the destination and committed by rename. This prevents partial final files on write, cancellation or validation failures. The keyring format is deliberately simple and auditable:
 
 ```text
 pgp-client-go/
@@ -84,4 +83,4 @@ pgp-client-go/
   settings.json
 ```
 
-Ao importar uma versão pública de uma chave que já possui material privado local, o armazenamento preserva a versão privada.
+When importing a public version of a key that already has local private material, storage preserves the private version.

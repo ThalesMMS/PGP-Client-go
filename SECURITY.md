@@ -1,51 +1,51 @@
-# Segurança
+# Security
 
-## Modelo de ameaça
+## Threat Model
 
-O PGP Client protege conteúdo contra leitura ou alteração por terceiros quando as chaves, frases secretas, algoritmos e endpoints usados são confiáveis. Ele não protege um computador já comprometido, um usuário logado com privilégios equivalentes, malware com acesso ao processo, captura de teclado/tela ou substituição maliciosa do binário.
+PGP Client protects content from third-party reading or modification when the keys, passphrases, algorithms and endpoints in use are trusted. It does not protect an already compromised computer, a logged-in user with equivalent privileges, malware with process access, keyboard/screen capture or malicious binary replacement.
 
-## Proteção das chaves
+## Key Protection
 
-- Chaves privadas podem ser armazenadas criptografadas por frase secreta; esse é o modo recomendado.
-- O arquivo local de uma chave privada recebe permissão `0600` em sistemas POSIX.
-- Frases secretas lembradas são delegadas ao cofre nativo do sistema operacional.
-- O cache de sessão mantém cópias em memória por tempo limitado e sobrescreve os buffers ao expirar, substituir ou bloquear a sessão. A linguagem Go e o coletor de lixo não permitem garantir eliminação física de todas as cópias transitórias.
-- Exportações privadas e backups devem ser tratados como material altamente sensível.
+- Private keys can be stored encrypted with a passphrase; this is the recommended mode.
+- The local file for a private key receives `0600` permissions on POSIX systems.
+- Remembered passphrases are delegated to the operating system's native vault.
+- The session cache keeps copies in memory for a limited time and overwrites buffers when they expire, are replaced or the session is locked. Go and its garbage collector cannot guarantee physical erasure of every transient copy.
+- Private exports and backups should be treated as highly sensitive material.
 
-## Integridade de arquivos
+## File Integrity
 
-As operações de arquivo do núcleo — criptografia, descriptografia, assinatura, verificação inline e exportação usada pela CLI — além da persistência do chaveiro, gravam em arquivo temporário no diretório de destino e só confirmam o resultado após concluir e sincronizar a escrita. Em Windows, onde a renomeação sobre um destino existente não é suportada da mesma forma, a implementação tenta a renomeação e só remove o destino após essa falha específica de plataforma. Salvamentos iniciados pelos diálogos nativos da GUI usam o fluxo fornecido pelo Fyne; a aplicação valida escrita/fechamento e aplica permissões restritivas quando o destino é um arquivo local privado.
+Core file operations - encryption, decryption, signing, inline verification and export used by the CLI - plus keyring persistence write to a temporary file in the destination directory and commit the result only after writing and syncing complete. On Windows, where renaming over an existing destination is not supported in the same way, the implementation attempts the rename and removes the destination only after that platform-specific failure. Saves started by native GUI dialogs use the stream supplied by Fyne; the application validates writing/closing and applies restrictive permissions when the destination is a private local file.
 
-Conteúdo extraído de uma assinatura inline não substitui o destino enquanto a assinatura não for válida. Em descriptografia, o OpenPGP assegura a autenticação do ciphertext antes da confirmação do temporário; uma assinatura embutida inválida é informada separadamente da integridade criptográfica da mensagem.
+Content extracted from an inline signature does not replace the destination until the signature is valid. During decryption, OpenPGP authenticates the ciphertext before the temporary file is committed; an invalid embedded signature is reported separately from the message's cryptographic integrity.
 
 ## Backup
 
-O formato `.pgpbackup` usa:
+The `.pgpbackup` format uses:
 
-- Argon2id para derivação de chave;
-- salt aleatório de 128 bits;
+- Argon2id for key derivation;
+- random 128-bit salt;
 - AES-256-GCM;
-- nonce aleatório;
-- autenticação do cabeçalho de formato como associated data;
-- limites de tamanho e de custo Argon2id durante a restauração.
+- random nonce;
+- authentication of the format header as associated data;
+- size and Argon2id cost limits during restore.
 
-Uma senha fraca continua vulnerável a tentativa offline. Use uma frase longa e exclusiva e mantenha cópias offline testadas.
+A weak password remains vulnerable to offline guessing. Use a long, unique passphrase and keep tested offline copies.
 
-## Rede e keyservers
+## Network And Keyservers
 
-- O cliente aceita HKPS/HTTPS; HTTP é restrito a `localhost` e `127.0.0.1` para testes.
-- Redirecionamentos inseguros e cadeias excessivas são bloqueados.
-- Requisições têm timeout e respostas são limitadas a 16 MiB.
-- Publicar uma chave pode divulgar identidades e endereços de e-mail. Alguns keyservers não permitem remoção completa posterior.
-- Uma chave baixada não se torna confiável automaticamente; valide o fingerprint por canal independente.
+- The client accepts HKPS/HTTPS; HTTP is restricted to `localhost` and `127.0.0.1` for tests.
+- Insecure redirects and excessive redirect chains are blocked.
+- Requests have a timeout and responses are limited to 16 MiB.
+- Publishing a key may disclose identities and email addresses. Some keyservers do not allow complete later removal.
+- A downloaded key does not become trusted automatically; validate the fingerprint through an independent channel.
 
-## Limitações criptográficas
+## Cryptographic Limitations
 
-- A geração local usa RSA 2048/3072/4096 para manter paridade com o aplicativo de referência.
-- O cliente importa outros algoritmos suportados pela biblioteca, mas nem toda combinação histórica ou extensão OpenPGP é garantida.
-- Confiança e marcação de fingerprint verificado são metadados locais; não implementam uma Web of Trust completa.
-- Revogação altera a chave local. Para avisar terceiros, exporte/publique a versão revogada em canais adequados.
+- Local generation uses RSA 2048/3072/4096 to maintain parity with the reference application.
+- The client imports other algorithms supported by the library, but not every historical combination or OpenPGP extension is guaranteed.
+- Trust and verified-fingerprint marks are local metadata; they do not implement a full Web of Trust.
+- Revocation changes the local key. To notify third parties, export/publish the revoked version through appropriate channels.
 
-## Relato de vulnerabilidade
+## Vulnerability Reporting
 
-Não publique dados sensíveis, chaves privadas, frases secretas ou backups em uma issue. Ao manter este projeto em um repositório, configure um canal privado de segurança e inclua versão, sistema operacional, passos mínimos e impacto observado.
+Do not publish sensitive data, private keys, passphrases or backups in an issue. When maintaining this project in a repository, configure a private security channel and include version, operating system, minimal steps and observed impact.

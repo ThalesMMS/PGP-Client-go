@@ -30,7 +30,7 @@ type Service struct {
 
 func NewService(store *storage.Store, secrets storage.SecretStore) (*Service, error) {
 	if store == nil {
-		return nil, errors.New("armazenamento nulo")
+		return nil, errors.New("nil storage")
 	}
 	if secrets == nil {
 		secrets = storage.SystemSecretStore{}
@@ -68,10 +68,10 @@ func (s *Service) SaveSettings(settings model.Settings) error {
 		return model.ErrUnsupportedKeySize
 	}
 	if settings.DefaultExpiryDays < 0 {
-		return errors.New("validade padrão não pode ser negativa")
+		return errors.New("default expiration cannot be negative")
 	}
 	if settings.BackupReminderDays < 0 {
-		return errors.New("intervalo de backup não pode ser negativo")
+		return errors.New("backup interval cannot be negative")
 	}
 	if settings.PassphraseCacheMinutes < 1 {
 		settings.PassphraseCacheMinutes = 1
@@ -111,12 +111,12 @@ func (s *Service) GenerateKey(req model.KeyGenerationRequest) (model.KeyInfo, er
 	req.Email = strings.TrimSpace(req.Email)
 	req.Comment = strings.TrimSpace(req.Comment)
 	if req.Name == "" && req.Email == "" {
-		return model.KeyInfo{}, errors.New("informe nome ou e-mail")
+		return model.KeyInfo{}, errors.New("provide a name or email")
 	}
 	if req.Email != "" {
 		address, err := mail.ParseAddress(req.Email)
 		if err != nil || !strings.EqualFold(address.Address, req.Email) {
-			return model.KeyInfo{}, errors.New("e-mail inválido")
+			return model.KeyInfo{}, errors.New("invalid email")
 		}
 	}
 	if req.Bits == 0 {
@@ -126,13 +126,13 @@ func (s *Service) GenerateKey(req model.KeyGenerationRequest) (model.KeyInfo, er
 		return model.KeyInfo{}, model.ErrUnsupportedKeySize
 	}
 	if req.ExpiryDays < 0 {
-		return model.KeyInfo{}, errors.New("validade não pode ser negativa")
+		return model.KeyInfo{}, errors.New("expiration cannot be negative")
 	}
 	var lifetime uint32
 	if req.ExpiryDays > 0 {
 		seconds := int64(req.ExpiryDays) * 24 * 60 * 60
 		if seconds > int64(^uint32(0)) {
-			return model.KeyInfo{}, errors.New("validade excede o limite do formato OpenPGP")
+			return model.KeyInfo{}, errors.New("expiration exceeds the OpenPGP format limit")
 		}
 		lifetime = uint32(seconds)
 	}
@@ -144,7 +144,7 @@ func (s *Service) GenerateKey(req model.KeyGenerationRequest) (model.KeyInfo, er
 	}
 	entity, err := openpgp.NewEntity(req.Name, req.Comment, req.Email, config)
 	if err != nil {
-		return model.KeyInfo{}, fmt.Errorf("gerar chave RSA: %w", err)
+		return model.KeyInfo{}, fmt.Errorf("generate RSA key: %w", err)
 	}
 	key, err := gcrypto.NewKeyFromEntity(entity)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *Service) GenerateKey(req model.KeyGenerationRequest) (model.KeyInfo, er
 	if len(req.Passphrase) > 0 {
 		key, err = gcrypto.PGP().LockKey(key, req.Passphrase)
 		if err != nil {
-			return model.KeyInfo{}, fmt.Errorf("proteger chave privada: %w", err)
+			return model.KeyInfo{}, fmt.Errorf("protect private key: %w", err)
 		}
 	}
 	if err := s.store.SaveKey(key); err != nil {
@@ -168,11 +168,11 @@ func (s *Service) GenerateKey(req model.KeyGenerationRequest) (model.KeyInfo, er
 				_ = s.secrets.Delete(fingerprint)
 				if cleanupErr := s.store.DeleteKey(fingerprint); cleanupErr != nil {
 					return model.KeyInfo{}, errors.Join(
-						fmt.Errorf("salvar frase secreta no cofre do sistema: %w", err),
-						fmt.Errorf("reverter chave criada: %w", cleanupErr),
+						fmt.Errorf("save passphrase in system vault: %w", err),
+						fmt.Errorf("roll back created key: %w", cleanupErr),
 					)
 				}
-				return model.KeyInfo{}, fmt.Errorf("salvar frase secreta no cofre do sistema: %w", err)
+				return model.KeyInfo{}, fmt.Errorf("save passphrase in system vault: %w", err)
 			}
 		}
 	}
@@ -255,7 +255,7 @@ func (s *Service) ExportPublic(fingerprint string) ([]byte, error) {
 	}
 	armored, err := key.GetArmoredPublicKey()
 	if err != nil {
-		return nil, fmt.Errorf("exportar chave pública: %w", err)
+		return nil, fmt.Errorf("export public key: %w", err)
 	}
 	return []byte(armored), nil
 }
@@ -270,7 +270,7 @@ func (s *Service) ExportPrivate(fingerprint string) ([]byte, error) {
 	}
 	armored, err := key.Armor()
 	if err != nil {
-		return nil, fmt.Errorf("exportar chave privada: %w", err)
+		return nil, fmt.Errorf("export private key: %w", err)
 	}
 	return []byte(armored), nil
 }
@@ -279,7 +279,7 @@ func (s *Service) SetTrust(fingerprint string, trust model.TrustLevel) error {
 	switch trust {
 	case model.TrustUnknown, model.TrustNever, model.TrustMarginal, model.TrustFull, model.TrustUltimate:
 	default:
-		return errors.New("nível de confiança inválido")
+		return errors.New("invalid trust level")
 	}
 	return s.store.UpdateMetadata(fingerprint, func(metadata *model.KeyMetadata) {
 		metadata.Trust = trust
@@ -324,7 +324,7 @@ func (s *Service) RevokeKey(fingerprint string, passphrase []byte, reason packet
 		return err
 	}
 	if err := key.GetEntity().Revoke(reason, strings.TrimSpace(reasonText), &packet.Config{}); err != nil {
-		return fmt.Errorf("revogar chave: %w", err)
+		return fmt.Errorf("revoke key: %w", err)
 	}
 	if wasLocked {
 		used, err := s.obtainPassphrase(fingerprint, passphrase)
@@ -333,7 +333,7 @@ func (s *Service) RevokeKey(fingerprint string, passphrase []byte, reason packet
 		}
 		key, err = gcrypto.PGP().LockKey(key, used)
 		if err != nil {
-			return fmt.Errorf("reproteger chave revogada: %w", err)
+			return fmt.Errorf("re-protect revoked key: %w", err)
 		}
 	}
 	return s.store.SaveKey(key)
@@ -350,7 +350,7 @@ func (s *Service) unlockPrivate(fingerprint string, supplied []byte, remember bo
 	}
 	locked, err := key.IsLocked()
 	if err != nil {
-		return nil, fmt.Errorf("verificar proteção da chave: %w", err)
+		return nil, fmt.Errorf("check key protection: %w", err)
 	}
 	if !locked {
 		return key, nil
@@ -418,7 +418,7 @@ func normalizeFingerprint(value string) string {
 func extractKeyInfo(key *gcrypto.Key, metadata model.KeyMetadata) (model.KeyInfo, error) {
 	entity := key.GetEntity()
 	if entity == nil || entity.PrimaryKey == nil {
-		return model.KeyInfo{}, errors.New("certificado OpenPGP sem chave primária")
+		return model.KeyInfo{}, errors.New("OpenPGP certificate without primary key")
 	}
 	fingerprint := normalizeFingerprint(key.GetFingerprint())
 	if metadata.Fingerprint == "" {

@@ -53,7 +53,7 @@ func TestEncryptDecryptSignedMultiRecipient(t *testing.T) {
 	carol := generateTestKey(t, service, "Carol", "carol@example.test", "carol-long-passphrase")
 	service.LockNow()
 
-	plaintext := []byte("mensagem confidencial com acentuação: ação")
+	plaintext := []byte("confidential message with accents: cafe")
 	ciphertext, err := service.Encrypt(model.EncryptRequest{
 		Plaintext:             plaintext,
 		RecipientFingerprints: []string{bob.Fingerprint, carol.Fingerprint},
@@ -99,7 +99,7 @@ func TestSignVerifyAllModes(t *testing.T) {
 	service := newTestService(t)
 	alice := generateTestKey(t, service, "Alice", "alice@example.test", "alice-long-passphrase")
 	service.LockNow()
-	data := []byte("conteúdo assinado\nsegunda linha\n")
+	data := []byte("signed content\nsecond line\n")
 
 	tests := []struct {
 		name  string
@@ -274,7 +274,7 @@ func TestKeyserverMachineReadableParser(t *testing.T) {
 func TestVerifyInlineFileCommitsOnlyAfterValidSignature(t *testing.T) {
 	service := newTestService(t)
 	alice := generateTestKey(t, service, "Alice", "alice@example.test", "alice-long-passphrase")
-	data := []byte("conteúdo que só pode ser publicado após verificação")
+	data := []byte("content that can only be published after verification")
 
 	signed, err := service.Sign(model.SignRequest{
 		Data:              data,

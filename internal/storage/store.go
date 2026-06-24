@@ -37,7 +37,7 @@ type Store struct {
 func DefaultRoot() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("obter diretório de configuração: %w", err)
+		return "", fmt.Errorf("get configuration directory: %w", err)
 	}
 	return filepath.Join(configDir, appDirName), nil
 }
@@ -52,7 +52,7 @@ func New(root string) (*Store, error) {
 	}
 	s := &Store{root: root, keysDir: filepath.Join(root, "keys")}
 	if err := os.MkdirAll(s.keysDir, 0o700); err != nil {
-		return nil, fmt.Errorf("criar armazenamento de chaves: %w", err)
+		return nil, fmt.Errorf("create key storage: %w", err)
 	}
 	return s, nil
 }
@@ -79,11 +79,11 @@ func (s *Store) keyPath(fingerprint string, private bool) string {
 // copy; importing a public copy never overwrites an existing private key.
 func (s *Store) SaveKey(key *gcrypto.Key) error {
 	if key == nil {
-		return errors.New("chave nula")
+		return errors.New("nil key")
 	}
 	fingerprint := normalizeFingerprint(key.GetFingerprint())
 	if fingerprint == "" {
-		return errors.New("chave sem fingerprint")
+		return errors.New("key without fingerprint")
 	}
 
 	s.mu.Lock()
@@ -104,14 +104,14 @@ func (s *Store) SaveKey(key *gcrypto.Key) error {
 		armored, err = key.GetArmoredPublicKey()
 	}
 	if err != nil {
-		return fmt.Errorf("serializar chave: %w", err)
+		return fmt.Errorf("serialize key: %w", err)
 	}
 	mode := os.FileMode(0o644)
 	if private {
 		mode = 0o600
 	}
 	if err := atomicWriteFile(s.keyPath(fingerprint, private), []byte(armored), mode); err != nil {
-		return fmt.Errorf("salvar chave: %w", err)
+		return fmt.Errorf("save key: %w", err)
 	}
 	if private {
 		_ = os.Remove(s.keyPath(fingerprint, false))
@@ -145,7 +145,7 @@ func (s *Store) DeleteKey(fingerprint string) error {
 		if err := os.Remove(path); err == nil {
 			found = true
 		} else if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("excluir chave: %w", err)
+			return fmt.Errorf("delete key: %w", err)
 		}
 	}
 	if !found {
@@ -168,12 +168,12 @@ func (s *Store) LoadKey(fingerprint string) (*gcrypto.Key, error) {
 		if err == nil {
 			key, parseErr := gcrypto.NewKey(data)
 			if parseErr != nil {
-				return nil, fmt.Errorf("ler chave %s: %w", fingerprint, parseErr)
+				return nil, fmt.Errorf("read key %s: %w", fingerprint, parseErr)
 			}
 			return key, nil
 		}
 		if !errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("ler chave %s: %w", fingerprint, err)
+			return nil, fmt.Errorf("read key %s: %w", fingerprint, err)
 		}
 	}
 	return nil, model.ErrKeyNotFound
@@ -185,7 +185,7 @@ func (s *Store) LoadAllKeys() ([]*gcrypto.Key, error) {
 
 	entries, err := os.ReadDir(s.keysDir)
 	if err != nil {
-		return nil, fmt.Errorf("listar chaves: %w", err)
+		return nil, fmt.Errorf("list keys: %w", err)
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
 	keys := make([]*gcrypto.Key, 0, len(entries))
@@ -195,11 +195,11 @@ func (s *Store) LoadAllKeys() ([]*gcrypto.Key, error) {
 		}
 		data, err := os.ReadFile(filepath.Join(s.keysDir, entry.Name()))
 		if err != nil {
-			return nil, fmt.Errorf("ler %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf("read %s: %w", entry.Name(), err)
 		}
 		key, err := gcrypto.NewKey(data)
 		if err != nil {
-			return nil, fmt.Errorf("interpretar %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf("parse %s: %w", entry.Name(), err)
 		}
 		keys = append(keys, key)
 	}
@@ -218,7 +218,7 @@ func ParseKeyBundle(data []byte) ([]*gcrypto.Key, error) {
 		entities, err = openpgp.ReadKeyRing(strings.NewReader(string(data)))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("interpretar chave OpenPGP: %w", err)
+		return nil, fmt.Errorf("parse OpenPGP key: %w", err)
 	}
 	keys := make([]*gcrypto.Key, 0, len(entities))
 	for _, entity := range entities {
@@ -229,7 +229,7 @@ func ParseKeyBundle(data []byte) ([]*gcrypto.Key, error) {
 		keys = append(keys, key)
 	}
 	if len(keys) == 0 {
-		return nil, errors.New("nenhuma chave OpenPGP encontrada")
+		return nil, errors.New("no OpenPGP keys found")
 	}
 	return keys, nil
 }
@@ -265,14 +265,14 @@ func (s *Store) loadMetadataLocked() (map[string]model.KeyMetadata, error) {
 		return make(map[string]model.KeyMetadata), nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ler metadados: %w", err)
+		return nil, fmt.Errorf("read metadata: %w", err)
 	}
 	metadata := make(map[string]model.KeyMetadata)
 	if len(data) == 0 {
 		return metadata, nil
 	}
 	if err := json.Unmarshal(data, &metadata); err != nil {
-		return nil, fmt.Errorf("interpretar metadados: %w", err)
+		return nil, fmt.Errorf("parse metadata: %w", err)
 	}
 	return metadata, nil
 }
@@ -280,10 +280,10 @@ func (s *Store) loadMetadataLocked() (map[string]model.KeyMetadata, error) {
 func (s *Store) saveMetadataLocked(metadata map[string]model.KeyMetadata) error {
 	data, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
-		return fmt.Errorf("serializar metadados: %w", err)
+		return fmt.Errorf("serialize metadata: %w", err)
 	}
 	if err := atomicWriteFile(filepath.Join(s.root, metadataFileName), append(data, '\n'), 0o600); err != nil {
-		return fmt.Errorf("salvar metadados: %w", err)
+		return fmt.Errorf("save metadata: %w", err)
 	}
 	return nil
 }
@@ -297,10 +297,10 @@ func (s *Store) LoadSettings() (model.Settings, error) {
 		return settings, nil
 	}
 	if err != nil {
-		return settings, fmt.Errorf("ler preferências: %w", err)
+		return settings, fmt.Errorf("read preferences: %w", err)
 	}
 	if err := json.Unmarshal(data, &settings); err != nil {
-		return settings, fmt.Errorf("interpretar preferências: %w", err)
+		return settings, fmt.Errorf("parse preferences: %w", err)
 	}
 	return settings, nil
 }
@@ -310,10 +310,10 @@ func (s *Store) SaveSettings(settings model.Settings) error {
 	defer s.mu.Unlock()
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return fmt.Errorf("serializar preferências: %w", err)
+		return fmt.Errorf("serialize preferences: %w", err)
 	}
 	if err := atomicWriteFile(filepath.Join(s.root, settingsFileName), append(data, '\n'), 0o600); err != nil {
-		return fmt.Errorf("salvar preferências: %w", err)
+		return fmt.Errorf("save preferences: %w", err)
 	}
 	return nil
 }

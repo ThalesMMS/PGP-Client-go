@@ -22,7 +22,7 @@ func (s *stringList) String() string { return strings.Join(*s, ",") }
 func (s *stringList) Set(value string) error {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return errors.New("valor vazio")
+		return errors.New("empty value")
 	}
 	*s = append(*s, value)
 	return nil
@@ -70,11 +70,11 @@ func main() {
 		err = keyserverUpload(service, args)
 	case "lock":
 		service.LockNow()
-		fmt.Println("Sessão bloqueada.")
+		fmt.Println("Session locked.")
 	case "help", "-h", "--help":
 		usage()
 	default:
-		fmt.Fprintf(os.Stderr, "comando desconhecido: %s\n\n", command)
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", command)
 		usage()
 		os.Exit(2)
 	}
@@ -86,31 +86,31 @@ func main() {
 func usage() {
 	fmt.Fprint(os.Stderr, `PGP Client CLI
 
-Uso:
+Usage:
   pgp-client-cli list [--json]
-  pgp-client-cli generate --name NOME --email EMAIL [--bits 3072] [--expires 730]
-  pgp-client-cli import ARQUIVO [ARQUIVO...]
-  pgp-client-cli export-public  --key FINGERPRINT --out ARQUIVO
-  pgp-client-cli export-private --key FINGERPRINT --out ARQUIVO
-  pgp-client-cli encrypt --recipient FINGERPRINT [--recipient ...] [--sign FINGERPRINT] ENTRADA SAIDA
-  pgp-client-cli decrypt ENTRADA SAIDA
-  pgp-client-cli sign --key FINGERPRINT [--mode detached|inline|cleartext] ENTRADA SAIDA
-  pgp-client-cli verify --mode detached|inline|cleartext --signature ASSINATURA [--data DADOS] [--out SAIDA]
-  pgp-client-cli backup SAIDA.pgpbackup
+  pgp-client-cli generate --name NAME --email EMAIL [--bits 3072] [--expires 730]
+  pgp-client-cli import FILE [FILE...]
+  pgp-client-cli export-public  --key FINGERPRINT --out FILE
+  pgp-client-cli export-private --key FINGERPRINT --out FILE
+  pgp-client-cli encrypt --recipient FINGERPRINT [--recipient ...] [--sign FINGERPRINT] INPUT OUTPUT
+  pgp-client-cli decrypt INPUT OUTPUT
+  pgp-client-cli sign --key FINGERPRINT [--mode detached|inline|cleartext] INPUT OUTPUT
+  pgp-client-cli verify --mode detached|inline|cleartext --signature SIGNATURE [--data DATA] [--out OUTPUT]
+  pgp-client-cli backup OUTPUT.pgpbackup
   pgp-client-cli restore [--settings] BACKUP.pgpbackup
-  pgp-client-cli keyserver-search CONSULTA
-  pgp-client-cli keyserver-import FINGERPRINT_OU_KEYID
+  pgp-client-cli keyserver-search QUERY
+  pgp-client-cli keyserver-import FINGERPRINT_OR_KEYID
   pgp-client-cli keyserver-upload FINGERPRINT
   pgp-client-cli lock
 
-Segredos podem ser fornecidos pelas variáveis PGP_CLIENT_PASSPHRASE e
-PGP_CLIENT_PASSWORD. Sem elas, o CLI solicita a entrada sem eco em terminal.
+Secrets can be supplied through PGP_CLIENT_PASSPHRASE and PGP_CLIENT_PASSWORD.
+Without them, the CLI prompts for hidden terminal input.
 `)
 }
 
 func listKeys(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
-	asJSON := fs.Bool("json", false, "saída JSON")
+	asJSON := fs.Bool("json", false, "JSON output")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -123,11 +123,11 @@ func listKeys(service *pgpcore.Service, args []string) error {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(keys)
 	}
-	fmt.Printf("%-18s %-8s %-9s %-25s %s\n", "KEY ID", "TIPO", "ALGORITMO", "IDENTIDADE", "FINGERPRINT")
+	fmt.Printf("%-18s %-8s %-9s %-25s %s\n", "KEY ID", "TYPE", "ALGORITHM", "IDENTITY", "FINGERPRINT")
 	for _, key := range keys {
-		kind := "pública"
+		kind := "public"
 		if key.IsPrivate {
-			kind = "secreta"
+			kind = "secret"
 		}
 		fmt.Printf("%-18s %-8s %-9s %-25s %s\n", key.KeyID, kind, fmt.Sprintf("%s-%d", key.Algorithm, key.Bits), truncate(key.PrimaryIdentity(), 25), key.Fingerprint)
 	}
@@ -136,30 +136,30 @@ func listKeys(service *pgpcore.Service, args []string) error {
 
 func generateKey(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
-	name := fs.String("name", "", "nome")
-	email := fs.String("email", "", "e-mail")
-	comment := fs.String("comment", "", "comentário")
-	bits := fs.Int("bits", 3072, "RSA 2048, 3072 ou 4096")
-	expires := fs.Int("expires", 730, "validade em dias; 0 = nunca")
-	unprotected := fs.Bool("unprotected", false, "não proteger a chave privada")
-	remember := fs.Bool("remember", false, "guardar frase secreta no cofre do sistema")
+	name := fs.String("name", "", "name")
+	email := fs.String("email", "", "email")
+	comment := fs.String("comment", "", "comment")
+	bits := fs.Int("bits", 3072, "RSA 2048, 3072 or 4096")
+	expires := fs.Int("expires", 730, "expiration in days; 0 = never")
+	unprotected := fs.Bool("unprotected", false, "do not protect the private key")
+	remember := fs.Bool("remember", false, "store the passphrase in the system vault")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	var passphrase []byte
 	var err error
 	if !*unprotected {
-		passphrase, err = secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Frase secreta da nova chave: ")
+		passphrase, err = secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "New key passphrase: ")
 		if err != nil {
 			return err
 		}
 		if os.Getenv("PGP_CLIENT_PASSPHRASE") == "" {
-			confirmation, err := readSecret("Confirme a frase secreta: ")
+			confirmation, err := readSecret("Confirm passphrase: ")
 			if err != nil {
 				return err
 			}
 			if string(passphrase) != string(confirmation) {
-				return errors.New("as frases secretas não coincidem")
+				return errors.New("passphrases do not match")
 			}
 		}
 	}
@@ -175,13 +175,13 @@ func generateKey(service *pgpcore.Service, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Chave criada: %s %s\n", info.KeyID, info.Fingerprint)
+	fmt.Printf("Key created: %s %s\n", info.KeyID, info.Fingerprint)
 	return nil
 }
 
 func importKeys(service *pgpcore.Service, args []string) error {
 	if len(args) == 0 {
-		return errors.New("informe ao menos um arquivo")
+		return errors.New("provide at least one file")
 	}
 	for _, path := range args {
 		data, err := os.ReadFile(path)
@@ -193,7 +193,7 @@ func importKeys(service *pgpcore.Service, args []string) error {
 			return fmt.Errorf("%s: %w", path, err)
 		}
 		for _, info := range infos {
-			fmt.Printf("Importada: %s %s\n", info.KeyID, info.PrimaryIdentity())
+			fmt.Printf("Imported: %s %s\n", info.KeyID, info.PrimaryIdentity())
 		}
 	}
 	return nil
@@ -202,12 +202,12 @@ func importKeys(service *pgpcore.Service, args []string) error {
 func exportKey(service *pgpcore.Service, args []string, private bool) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fingerprint := fs.String("key", "", "fingerprint")
-	out := fs.String("out", "", "arquivo de saída")
+	out := fs.String("out", "", "output file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *fingerprint == "" || *out == "" {
-		return errors.New("--key e --out são obrigatórios")
+		return errors.New("--key and --out are required")
 	}
 	var data []byte
 	var err error
@@ -229,16 +229,16 @@ func exportKey(service *pgpcore.Service, args []string, private bool) error {
 func encryptFile(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("encrypt", flag.ContinueOnError)
 	var recipients stringList
-	fs.Var(&recipients, "recipient", "fingerprint do destinatário; repetível")
-	signer := fs.String("sign", "", "fingerprint da chave de assinatura")
+	fs.Var(&recipients, "recipient", "recipient fingerprint; repeatable")
+	signer := fs.String("sign", "", "signing key fingerprint")
 	armor := fs.Bool("armor", false, "ASCII armor")
-	compress := fs.Bool("compress", true, "compressão OpenPGP")
-	passwordMode := fs.Bool("password", false, "criptografia simétrica por senha")
+	compress := fs.Bool("compress", true, "OpenPGP compression")
+	passwordMode := fs.Bool("password", false, "symmetric password encryption")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 2 {
-		return errors.New("uso: encrypt [opções] ENTRADA SAIDA")
+		return errors.New("usage: encrypt [options] INPUT OUTPUT")
 	}
 	req := model.EncryptRequest{
 		RecipientFingerprints: recipients,
@@ -247,7 +247,7 @@ func encryptFile(service *pgpcore.Service, args []string) error {
 		Compress:              *compress,
 	}
 	if *passwordMode {
-		password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Senha de criptografia: ")
+		password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Encryption password: ")
 		if err != nil {
 			return err
 		}
@@ -258,7 +258,7 @@ func encryptFile(service *pgpcore.Service, args []string) error {
 		err := service.EncryptFile(context.Background(), fs.Arg(0), fs.Arg(1), req)
 		var required *model.PassphraseRequiredError
 		if errors.As(err, &required) {
-			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Frase secreta de "+required.Identity+": ")
+			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Passphrase for "+required.Identity+": ")
 			if promptErr != nil {
 				return promptErr
 			}
@@ -271,16 +271,16 @@ func encryptFile(service *pgpcore.Service, args []string) error {
 
 func decryptFile(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("decrypt", flag.ContinueOnError)
-	passwordMode := fs.Bool("password", false, "tentar senha simétrica")
+	passwordMode := fs.Bool("password", false, "try symmetric password")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 2 {
-		return errors.New("uso: decrypt [--password] ENTRADA SAIDA")
+		return errors.New("usage: decrypt [--password] INPUT OUTPUT")
 	}
 	req := model.DecryptRequest{Passphrases: make(map[string][]byte)}
 	if *passwordMode {
-		password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Senha de descriptografia: ")
+		password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Decryption password: ")
 		if err != nil {
 			return err
 		}
@@ -290,7 +290,7 @@ func decryptFile(service *pgpcore.Service, args []string) error {
 		result, err := service.DecryptFile(context.Background(), fs.Arg(0), fs.Arg(1), req)
 		var required *model.PassphraseRequiredError
 		if errors.As(err, &required) {
-			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Frase secreta de "+required.Identity+": ")
+			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Passphrase for "+required.Identity+": ")
 			if promptErr != nil {
 				return promptErr
 			}
@@ -298,7 +298,7 @@ func decryptFile(service *pgpcore.Service, args []string) error {
 			continue
 		}
 		if err == nil && result.SignaturePresent {
-			fmt.Printf("Assinatura: válida=%t keyID=%s erro=%s\n", result.SignatureValid, result.SignerKeyID, result.SignatureError)
+			fmt.Printf("Signature: valid=%t keyID=%s error=%s\n", result.SignatureValid, result.SignerKeyID, result.SignatureError)
 		}
 		return err
 	}
@@ -306,14 +306,14 @@ func decryptFile(service *pgpcore.Service, args []string) error {
 
 func signFile(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("sign", flag.ContinueOnError)
-	fingerprint := fs.String("key", "", "fingerprint da chave secreta")
-	modeText := fs.String("mode", "detached", "detached, inline ou cleartext")
+	fingerprint := fs.String("key", "", "secret key fingerprint")
+	modeText := fs.String("mode", "detached", "detached, inline or cleartext")
 	armor := fs.Bool("armor", true, "ASCII armor")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 2 || *fingerprint == "" {
-		return errors.New("uso: sign --key FINGERPRINT [opções] ENTRADA SAIDA")
+		return errors.New("usage: sign --key FINGERPRINT [options] INPUT OUTPUT")
 	}
 	mode, err := parseMode(*modeText)
 	if err != nil {
@@ -324,7 +324,7 @@ func signFile(service *pgpcore.Service, args []string) error {
 		err := service.SignFile(context.Background(), fs.Arg(0), fs.Arg(1), req)
 		var required *model.PassphraseRequiredError
 		if errors.As(err, &required) {
-			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Frase secreta de "+required.Identity+": ")
+			secret, promptErr := secretFromEnvOrPrompt("PGP_CLIENT_PASSPHRASE", "Passphrase for "+required.Identity+": ")
 			if promptErr != nil {
 				return promptErr
 			}
@@ -337,10 +337,10 @@ func signFile(service *pgpcore.Service, args []string) error {
 
 func verifyFile(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("verify", flag.ContinueOnError)
-	modeText := fs.String("mode", "detached", "detached, inline ou cleartext")
-	dataPath := fs.String("data", "", "dados originais para assinatura destacada")
-	signaturePath := fs.String("signature", "", "assinatura ou mensagem assinada")
-	out := fs.String("out", "", "saída do conteúdo inline verificado")
+	modeText := fs.String("mode", "detached", "detached, inline or cleartext")
+	dataPath := fs.String("data", "", "original data for detached signature")
+	signaturePath := fs.String("signature", "", "signature or signed message")
+	out := fs.String("out", "", "verified inline content output")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -349,27 +349,27 @@ func verifyFile(service *pgpcore.Service, args []string) error {
 		return err
 	}
 	if *signaturePath == "" {
-		return errors.New("--signature é obrigatório")
+		return errors.New("--signature is required")
 	}
 	if mode == model.SignatureDetached && *dataPath == "" {
-		return errors.New("--data é obrigatório para assinatura destacada")
+		return errors.New("--data is required for detached signatures")
 	}
 	result, err := service.VerifyFile(context.Background(), *dataPath, *signaturePath, *out, model.VerifyRequest{Mode: mode})
 	if err != nil {
 		return err
 	}
 	if !result.Valid {
-		return fmt.Errorf("assinatura inválida: %s", result.SignatureErr)
+		return fmt.Errorf("invalid signature: %s", result.SignatureErr)
 	}
-	fmt.Printf("Assinatura válida: keyID=%s signer=%s <%s>\n", result.SignerKeyID, result.SignerName, result.SignerEmail)
+	fmt.Printf("Valid signature: keyID=%s signer=%s <%s>\n", result.SignerKeyID, result.SignerName, result.SignerEmail)
 	return nil
 }
 
 func backup(service *pgpcore.Service, args []string) error {
 	if len(args) != 1 {
-		return errors.New("uso: backup SAIDA.pgpbackup")
+		return errors.New("usage: backup OUTPUT.pgpbackup")
 	}
-	password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Senha do backup: ")
+	password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Backup password: ")
 	if err != nil {
 		return err
 	}
@@ -385,18 +385,18 @@ func backup(service *pgpcore.Service, args []string) error {
 
 func restore(service *pgpcore.Service, args []string) error {
 	fs := flag.NewFlagSet("restore", flag.ContinueOnError)
-	settings := fs.Bool("settings", false, "restaurar preferências")
+	settings := fs.Bool("settings", false, "restore preferences")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return errors.New("uso: restore [--settings] BACKUP.pgpbackup")
+		return errors.New("usage: restore [--settings] BACKUP.pgpbackup")
 	}
 	archive, err := os.ReadFile(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Senha do backup: ")
+	password, err := secretFromEnvOrPrompt("PGP_CLIENT_PASSWORD", "Backup password: ")
 	if err != nil {
 		return err
 	}
@@ -404,13 +404,13 @@ func restore(service *pgpcore.Service, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%d chave(s) restaurada(s).\n", len(infos))
+	fmt.Printf("%d key(s) restored.\n", len(infos))
 	return nil
 }
 
 func keyserverSearch(service *pgpcore.Service, args []string) error {
 	if len(args) == 0 {
-		return errors.New("informe uma consulta")
+		return errors.New("provide a query")
 	}
 	results, err := service.SearchKeyserver(context.Background(), strings.Join(args, " "))
 	if err != nil {
@@ -424,21 +424,21 @@ func keyserverSearch(service *pgpcore.Service, args []string) error {
 
 func keyserverImport(service *pgpcore.Service, args []string) error {
 	if len(args) != 1 {
-		return errors.New("informe fingerprint ou Key ID")
+		return errors.New("provide a fingerprint or Key ID")
 	}
 	infos, err := service.ImportFromKeyserver(context.Background(), args[0])
 	if err != nil {
 		return err
 	}
 	for _, info := range infos {
-		fmt.Printf("Importada: %s %s\n", info.KeyID, info.PrimaryIdentity())
+		fmt.Printf("Imported: %s %s\n", info.KeyID, info.PrimaryIdentity())
 	}
 	return nil
 }
 
 func keyserverUpload(service *pgpcore.Service, args []string) error {
 	if len(args) != 1 {
-		return errors.New("informe o fingerprint")
+		return errors.New("provide the fingerprint")
 	}
 	return service.UploadToKeyserver(context.Background(), args[0])
 }
@@ -452,7 +452,7 @@ func parseMode(value string) (model.SignatureMode, error) {
 	case "cleartext":
 		return model.SignatureCleartext, nil
 	default:
-		return "", errors.New("modo deve ser detached, inline ou cleartext")
+		return "", errors.New("mode must be detached, inline or cleartext")
 	}
 }
 
@@ -465,7 +465,7 @@ func secretFromEnvOrPrompt(env, prompt string) ([]byte, error) {
 
 func readSecret(prompt string) ([]byte, error) {
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return nil, errors.New("entrada não é um terminal; use a variável de ambiente de segredo")
+		return nil, errors.New("input is not a terminal; use the secret environment variable")
 	}
 	fmt.Fprint(os.Stderr, prompt)
 	secret, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -474,7 +474,7 @@ func readSecret(prompt string) ([]byte, error) {
 		return nil, err
 	}
 	if len(secret) == 0 {
-		return nil, errors.New("segredo vazio")
+		return nil, errors.New("empty secret")
 	}
 	return secret, nil
 }
@@ -491,10 +491,13 @@ func truncate(value string, max int) string {
 	if max < 2 {
 		return string(runes[:max])
 	}
-	return string(runes[:max-1]) + "…"
+	if max < 4 {
+		return string(runes[:max-1]) + "."
+	}
+	return string(runes[:max-3]) + "..."
 }
 
 func fatal(err error) {
-	fmt.Fprintln(os.Stderr, "erro:", err)
+	fmt.Fprintln(os.Stderr, "error:", err)
 	os.Exit(1)
 }

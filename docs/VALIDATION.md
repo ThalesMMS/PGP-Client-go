@@ -1,8 +1,8 @@
-# Validação da entrega
+# Delivery Validation
 
-Ambiente usado em 2026-06-24: Linux x86_64, Go 1.23.2.
+Environment used on 2026-06-24: Linux x86_64, Go 1.23.2.
 
-Executado com sucesso:
+Completed successfully:
 
 ```bash
 go mod tidy
@@ -15,16 +15,16 @@ go build -trimpath ./cmd/pgp-client-cli
 go run fyne.io/tools/cmd/fyne@v1.7.2 package --tags ci --src ./cmd/pgp-client
 ```
 
-Também foi executado um smoke test do CLI com diretório de configuração isolado:
+A CLI smoke test was also run with an isolated configuration directory:
 
-1. geração de duas chaves RSA 2048;
-2. listagem JSON e seleção por fingerprint;
-3. criptografia para Bob com assinatura de Alice;
-4. descriptografia e validação da assinatura embutida;
-5. assinatura destacada e verificação;
-6. criação de backup;
-7. restauração em chaveiro vazio e conferência de duas chaves.
+1. generated two RSA 2048 keys;
+2. listed JSON and selected by fingerprint;
+3. encrypted for Bob with Alice's signature;
+4. decrypted and validated the embedded signature;
+5. created and verified a detached signature;
+6. created a backup;
+7. restored into an empty keyring and confirmed two keys.
 
-A suíte também cobre seleção do destinatário correto durante descriptografia streaming, arquivos simétricos sem tentativas de desbloqueio de chaves não relacionadas, fallback após segredo obsoleto no cofre, rollback de geração quando o cofre falha e roteamento de arquivos recebidos pela GUI.
+The suite also covers correct recipient selection during streaming decryption, symmetric files without attempts to unlock unrelated keys, fallback after a stale vault secret, generation rollback when the vault fails and routing of files received by the GUI.
 
-O link nativo da GUI Linux não foi executado neste container porque os headers de desenvolvimento OpenGL/X11 não estavam disponíveis. A tag `ci` do Fyne valida toda a composição da UI com driver em memória, inclusive renderização das cinco páginas. Para distribuição, execute `make build` e `make package` em um sistema com as dependências nativas descritas no README.
+The native Linux GUI link was not run in this container because OpenGL/X11 development headers were unavailable. Fyne's `ci` tag validates all UI composition with the in-memory driver, including rendering the five pages. For distribution, run `make build` and `make package` on a system with the native dependencies described in the README.

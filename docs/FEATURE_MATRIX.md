@@ -1,28 +1,28 @@
-# Matriz de funcionalidades
+# Feature Matrix
 
-| Área | Situação | Observações |
+| Area | Status | Notes |
 |---|---|---|
-| Chaveiro pesquisável e filtrável | Implementado | Pública/secreta, validade, revogação, confiança e verificação local |
-| Geração RSA 2048/3072/4096 | Implementado | Validade e frase secreta opcionais |
-| Importar/exportar/excluir | Implementado | Binário e ASCII armor; exportação privada com modo restritivo |
-| Revogação local | Implementado | A chave revogada pode ser exportada/publicada |
-| Fingerprint copiar/comparar | Implementado | Marcação de verificação é metadado local |
-| Criptografia de texto | Implementado | Múltiplos destinatários, senha, armor, compressão, assinatura |
-| Criptografia de arquivo | Implementado | Streaming e confirmação transacional |
-| Descriptografia | Implementado | Chave privada ou senha; assinatura embutida |
-| Assinatura/verificação | Implementado | Detached, inline e cleartext; texto e arquivo |
-| Cofre nativo de credenciais | Implementado | macOS Keychain, Secret Service/KWallet e Windows Credential Manager via `go-keyring` |
-| Cache/bloqueio de sessão | Implementado | TTL configurável e bloqueio manual |
-| Backup criptografado | Implementado | Chaves, metadados e preferências opcionais na restauração |
-| HKP/HKPS | Implementado | Pesquisa, download e upload |
-| Drag and drop | Implementado | Roteamento por conteúdo/extensão |
-| Abertura de arquivo pela aplicação | Implementado | Argumentos de processo e metadata MIME |
-| CLI para automação | Implementado | Mesma camada de serviço da GUI |
-| Finder Sync Extension | Não incluído | Requer target nativo App Extension em Xcode/Swift/Obj-C |
-| Quick Look Extension | Não incluído | Requer target e assinatura nativos do macOS |
-| Thumbnail Extension | Não incluído | Requer target nativo do macOS |
-| Share Extension | Não incluído | Requer target App Extension e entitlements |
+| Searchable and filterable keyring | Implemented | Public/secret, expiration, revocation, trust and local verification |
+| RSA 2048/3072/4096 generation | Implemented | Optional expiration and passphrase |
+| Import/export/delete | Implemented | Binary and ASCII armor; private export with restrictive mode |
+| Local revocation | Implemented | The revoked key can be exported/published |
+| Fingerprint copy/compare | Implemented | Verification marking is local metadata |
+| Text encryption | Implemented | Multiple recipients, password, armor, compression, signature |
+| File encryption | Implemented | Streaming and transactional confirmation |
+| Decryption | Implemented | Private key or password; embedded signature |
+| Signing/verification | Implemented | Detached, inline and cleartext; text and file |
+| Native credential vault | Implemented | macOS Keychain, Secret Service/KWallet and Windows Credential Manager through `go-keyring` |
+| Session cache/lock | Implemented | Configurable TTL and manual lock |
+| Encrypted backup | Implemented | Optional keys, metadata and preferences during restore |
+| HKP/HKPS | Implemented | Search, download and upload |
+| Drag and drop | Implemented | Content/extension-based routing |
+| File opening by the application | Implemented | Process arguments and MIME metadata |
+| CLI automation | Implemented | Same service layer as the GUI |
+| Finder Sync Extension | Not included | Requires native App Extension target in Xcode/Swift/Obj-C |
+| Quick Look Extension | Not included | Requires native macOS target and signing |
+| Thumbnail Extension | Not included | Requires native macOS target |
+| Share Extension | Not included | Requires App Extension target and entitlements |
 
-## Interpretação
+## Interpretation
 
-A paridade funcional cobre os fluxos OpenPGP e a experiência principal do aplicativo. Recursos que vivem dentro do Finder ou do sistema de extensões da Apple não pertencem ao runtime Fyne; a alternativa entregue é a combinação de abertura de arquivos, drag and drop, CLI e Quick Actions do Automator.
+Functional parity covers the OpenPGP flows and the main application experience. Features that live inside Finder or Apple's extension system do not belong to the Fyne runtime; the delivered alternative is the combination of file opening, drag and drop, CLI and Automator Quick Actions.

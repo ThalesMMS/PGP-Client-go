@@ -44,17 +44,17 @@ func (s *Service) Encrypt(req model.EncryptRequest) ([]byte, error) {
 	}
 	handle, err := builder.New()
 	if err != nil {
-		return nil, fmt.Errorf("configurar criptografia: %w", err)
+		return nil, fmt.Errorf("configure encryption: %w", err)
 	}
 	defer handle.ClearPrivateParams()
 	message, err := handle.Encrypt(req.Plaintext)
 	if err != nil {
-		return nil, fmt.Errorf("criptografar: %w", err)
+		return nil, fmt.Errorf("encrypt: %w", err)
 	}
 	if req.Armor {
 		armored, err := message.ArmorBytes()
 		if err != nil {
-			return nil, fmt.Errorf("codificar ASCII armor: %w", err)
+			return nil, fmt.Errorf("encode ASCII armor: %w", err)
 		}
 		return armored, nil
 	}
@@ -68,7 +68,7 @@ func (s *Service) Decrypt(req model.DecryptRequest) (model.DecryptResult, error)
 		var err error
 		message, err = gcrypto.NewPGPMessageFromArmored(trimmed)
 		if err != nil {
-			return model.DecryptResult{}, fmt.Errorf("interpretar mensagem blindada: %w", err)
+			return model.DecryptResult{}, fmt.Errorf("parse armored message: %w", err)
 		}
 	}
 	recipientIDs, _ := message.HexEncryptionKeyIDs()
@@ -125,7 +125,7 @@ func (s *Service) Decrypt(req model.DecryptRequest) (model.DecryptResult, error)
 	}
 	handle, err := builder.New()
 	if err != nil {
-		return result, fmt.Errorf("configurar descriptografia: %w", err)
+		return result, fmt.Errorf("configure decryption: %w", err)
 	}
 	defer handle.ClearPrivateParams()
 	verified, err := handle.Decrypt(req.Ciphertext, gcrypto.Auto)
@@ -134,7 +134,7 @@ func (s *Service) Decrypt(req model.DecryptRequest) (model.DecryptResult, error)
 		if required != nil {
 			return result, required
 		}
-		return result, fmt.Errorf("descriptografar: %w", err)
+		return result, fmt.Errorf("decrypt: %w", err)
 	}
 	result.Plaintext = verified.Bytes()
 	if metadata := verified.Metadata(); metadata != nil {
@@ -161,13 +161,13 @@ func (s *Service) Sign(req model.SignRequest) ([]byte, error) {
 	}
 	handle, err := builder.New()
 	if err != nil {
-		return nil, fmt.Errorf("configurar assinatura: %w", err)
+		return nil, fmt.Errorf("configure signing: %w", err)
 	}
 	defer handle.ClearPrivateParams()
 	if req.Mode == model.SignatureCleartext {
 		result, err := handle.SignCleartext(req.Data)
 		if err != nil {
-			return nil, fmt.Errorf("assinar texto claro: %w", err)
+			return nil, fmt.Errorf("sign cleartext: %w", err)
 		}
 		return result, nil
 	}
@@ -177,7 +177,7 @@ func (s *Service) Sign(req model.SignRequest) ([]byte, error) {
 	}
 	result, err := handle.Sign(req.Data, encoding)
 	if err != nil {
-		return nil, fmt.Errorf("assinar: %w", err)
+		return nil, fmt.Errorf("sign: %w", err)
 	}
 	return result, nil
 }
@@ -196,7 +196,7 @@ func (s *Service) Verify(req model.VerifyRequest) (model.VerifyResult, error) {
 	}
 	handle, err := builder.New()
 	if err != nil {
-		return model.VerifyResult{}, fmt.Errorf("configurar verificação: %w", err)
+		return model.VerifyResult{}, fmt.Errorf("configure verification: %w", err)
 	}
 
 	var verification *gcrypto.VerifyResult
@@ -220,7 +220,7 @@ func (s *Service) Verify(req model.VerifyRequest) (model.VerifyResult, error) {
 		}
 	}
 	if err != nil {
-		return model.VerifyResult{}, fmt.Errorf("verificar assinatura: %w", err)
+		return model.VerifyResult{}, fmt.Errorf("verify signature: %w", err)
 	}
 	result := model.VerifyResult{Data: data}
 	fillVerifyResult(&result, verification)
@@ -242,10 +242,10 @@ func (s *Service) publicKeyRing(fingerprints []string, requireEncryption bool) (
 		}
 		public, err := key.ToPublic()
 		if err != nil {
-			return nil, fmt.Errorf("extrair chave pública: %w", err)
+			return nil, fmt.Errorf("extract public key: %w", err)
 		}
 		if requireEncryption && !public.CanEncrypt(time.Now().Unix()) {
-			return nil, fmt.Errorf("%s: chave não apta para criptografia", fingerprint)
+			return nil, fmt.Errorf("%s: key is not suitable for encryption", fingerprint)
 		}
 		if err := ring.AddKey(public); err != nil {
 			return nil, err
@@ -348,7 +348,7 @@ func fillDecryptSignature(result *model.DecryptResult, verification *gcrypto.Ver
 
 func fillVerifyResult(result *model.VerifyResult, verification *gcrypto.VerifyResult) {
 	if verification == nil {
-		result.SignatureErr = "resultado de verificação ausente"
+		result.SignatureErr = "missing verification result"
 		return
 	}
 	result.SignerKeyID = strings.ToUpper(verification.SignedByKeyIdHex())

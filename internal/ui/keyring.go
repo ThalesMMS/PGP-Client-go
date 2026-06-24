@@ -25,19 +25,19 @@ import (
 
 func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 	if err := d.reloadKeys(); err != nil {
-		return center(widget.NewLabel("Falha ao carregar chaves: " + err.Error()))
+		return center(widget.NewLabel("Failed to load keys: " + err.Error()))
 	}
 
 	search := widget.NewEntry()
-	search.SetPlaceHolder("Pesquisar chaves…")
-	filter := widget.NewSelect([]string{"Todas", "Secretas", "Públicas", "Inválidas"}, nil)
-	filter.SetSelected("Todas")
-	sortBy := widget.NewSelect([]string{"Nome", "Criação", "Key ID"}, nil)
-	sortBy.SetSelected("Nome")
+	search.SetPlaceHolder("Search keys...")
+	filter := widget.NewSelect([]string{"All", "Secret", "Public", "Invalid"}, nil)
+	filter.SetSelected("All")
+	sortBy := widget.NewSelect([]string{"Name", "Created", "Key ID"}, nil)
+	sortBy.SetSelected("Name")
 
 	filtered := append([]model.KeyInfo(nil), d.keys...)
 	selectedFingerprint := ""
-	details := container.NewMax(center(muted("Selecione uma chave")))
+	details := container.NewMax(center(muted("Select a key")))
 
 	var list *widget.List
 	apply := func() {
@@ -51,15 +51,15 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 				continue
 			}
 			switch filter.Selected {
-			case "Secretas":
+			case "Secret":
 				if !key.IsPrivate {
 					continue
 				}
-			case "Públicas":
+			case "Public":
 				if key.IsPrivate {
 					continue
 				}
-			case "Inválidas":
+			case "Invalid":
 				if !key.Expired && !key.Revoked {
 					continue
 				}
@@ -68,7 +68,7 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 		}
 		sort.SliceStable(filtered, func(i, j int) bool {
 			switch sortBy.Selected {
-			case "Criação":
+			case "Created":
 				return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
 			case "Key ID":
 				return filtered[i].KeyID < filtered[j].KeyID
@@ -85,7 +85,7 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 		func() int { return len(filtered) },
 		func() fyne.CanvasObject {
 			icon := widget.NewIcon(theme.LoginIcon())
-			name := widget.NewLabelWithStyle("Nome", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+			name := widget.NewLabelWithStyle("Name", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 			identity := muted("email")
 			keyID := muted("A1B2C3D4")
 			text := container.NewVBox(name, identity, keyID)
@@ -115,9 +115,9 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 			text.Objects[1].(*widget.Label).SetText(identity)
 			status := d.visibleKeyID(key)
 			if key.Revoked {
-				status += " · REVOGADA"
+				status += " - REVOKED"
 			} else if key.Expired {
-				status += " · EXPIRADA"
+				status += " - EXPIRED"
 			}
 			text.Objects[2].(*widget.Label).SetText(status)
 		},
@@ -136,11 +136,11 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 	sortBy.OnChanged = func(string) { apply() }
 
 	toolbar := container.NewHBox(
-		widget.NewButtonWithIcon("Nova", theme.ContentAddIcon(), d.showGenerateKey),
-		widget.NewButtonWithIcon("Importar", theme.DownloadIcon(), d.importKeyDialog),
-		widget.NewButtonWithIcon("Servidor", theme.SearchIcon(), d.showKeyserverSearch),
+		widget.NewButtonWithIcon("New", theme.ContentAddIcon(), d.showGenerateKey),
+		widget.NewButtonWithIcon("Import", theme.DownloadIcon(), d.importKeyDialog),
+		widget.NewButtonWithIcon("Server", theme.SearchIcon(), d.showKeyserverSearch),
 		layout.NewSpacer(),
-		widget.NewButtonWithIcon("Atualizar", theme.ViewRefreshIcon(), func() {
+		widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), func() {
 			if err := d.reloadKeys(); err != nil {
 				dialog.ShowError(err, d.window)
 				return
@@ -150,7 +150,7 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 	)
 	controls := container.NewGridWithColumns(2, filter, sortBy)
 	middle := container.NewBorder(
-		container.NewVBox(container.NewPadded(heading("Chaveiro")), toolbar, controls, search, canvas.NewLine(theme.Color(theme.ColorNameSeparator))),
+		container.NewVBox(container.NewPadded(heading("Keyring")), toolbar, controls, search, canvas.NewLine(theme.Color(theme.ColorNameSeparator))),
 		nil, nil, nil,
 		list,
 	)
@@ -162,11 +162,11 @@ func (d *Desktop) buildKeyringPage() fyne.CanvasObject {
 	} else {
 		empty := card(
 			center(widget.NewIcon(theme.StorageIcon())),
-			center(heading("Nenhuma chave")),
-			center(muted("Gere uma chave RSA ou importe um certificado OpenPGP.")),
+			center(heading("No keys")),
+			center(muted("Generate an RSA key or import an OpenPGP certificate.")),
 			center(container.NewHBox(
-				widget.NewButtonWithIcon("Gerar chave", theme.ContentAddIcon(), d.showGenerateKey),
-				widget.NewButtonWithIcon("Importar", theme.DownloadIcon(), d.importKeyDialog),
+				widget.NewButtonWithIcon("Generate key", theme.ContentAddIcon(), d.showGenerateKey),
+				widget.NewButtonWithIcon("Import", theme.DownloadIcon(), d.importKeyDialog),
 			)),
 		)
 		details.Objects = []fyne.CanvasObject{center(empty)}
@@ -192,32 +192,32 @@ func (d *Desktop) buildKeyDetails(info model.KeyInfo) fyne.CanvasObject {
 	kind.Importance = widget.WarningImportance
 	title := container.NewHBox(keyIcon, container.NewVBox(name, identity, kind))
 
-	exportPublic := widget.NewButtonWithIcon("Pública", theme.UploadIcon(), func() { d.exportKeyDialog(info, false) })
-	exportPrivate := widget.NewButtonWithIcon("Privada", theme.WarningIcon(), func() { d.exportKeyDialog(info, true) })
+	exportPublic := widget.NewButtonWithIcon("Public", theme.UploadIcon(), func() { d.exportKeyDialog(info, false) })
+	exportPrivate := widget.NewButtonWithIcon("Private", theme.WarningIcon(), func() { d.exportKeyDialog(info, true) })
 	if !info.IsPrivate {
 		exportPrivate.Disable()
 	}
-	deleteButton := widget.NewButtonWithIcon("Excluir", theme.DeleteIcon(), func() { d.deleteKeyDialog(info) })
+	deleteButton := widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), func() { d.deleteKeyDialog(info) })
 	deleteButton.Importance = widget.DangerImportance
 	toolbar := container.NewHBox(exportPublic, exportPrivate, layout.NewSpacer(), deleteButton)
 
-	expires := "Nunca"
+	expires := "Never"
 	if info.ExpiresAt != nil {
 		expires = formatDate(*info.ExpiresAt)
 	}
 	facts := container.NewGridWithColumns(2,
-		card(labeledValue("Key ID", info.KeyID), labeledValue("Criada", formatDate(info.CreatedAt))),
-		card(labeledValue("Algoritmo", fmt.Sprintf("%s %d", info.Algorithm, info.Bits)), labeledValue("Expira", expires)),
+		card(labeledValue("Key ID", info.KeyID), labeledValue("Created", formatDate(info.CreatedAt))),
+		card(labeledValue("Algorithm", fmt.Sprintf("%s %d", info.Algorithm, info.Bits)), labeledValue("Expires", expires)),
 	)
 
 	fingerprintEntry := widget.NewEntry()
 	fingerprintEntry.SetText(formatFingerprint(info.Fingerprint))
 	fingerprintEntry.Disable()
-	copyFingerprint := widget.NewButtonWithIcon("Copiar", theme.ContentCopyIcon(), func() {
+	copyFingerprint := widget.NewButtonWithIcon("Copy", theme.ContentCopyIcon(), func() {
 		d.window.Clipboard().SetContent(info.Fingerprint)
-		d.setStatus("Fingerprint copiado")
+		d.setStatus("Fingerprint copied")
 	})
-	compare := widget.NewButtonWithIcon("Comparar", theme.SearchReplaceIcon(), func() { d.showFingerprintComparison(info) })
+	compare := widget.NewButtonWithIcon("Compare", theme.SearchReplaceIcon(), func() { d.showFingerprintComparison(info) })
 	fingerprint := section("Fingerprint", container.NewBorder(nil, nil, nil, container.NewHBox(copyFingerprint, compare), fingerprintEntry))
 
 	uids := container.NewVBox()
@@ -225,57 +225,57 @@ func (d *Desktop) buildKeyDetails(info model.KeyInfo) fyne.CanvasObject {
 		uids.Add(card(widget.NewLabel(uid)))
 	}
 	if len(info.UserIDs) == 0 {
-		uids.Add(muted("Nenhuma identidade disponível"))
+		uids.Add(muted("No identities available"))
 	}
 
 	trustSelect := widget.NewSelect([]string{
-		"Desconhecida", "Nunca confiar", "Confiança marginal", "Confiança plena", "Confiança definitiva",
+		"Unknown", "Never trust", "Marginal trust", "Full trust", "Ultimate trust",
 	}, func(value string) {
 		if err := d.service.SetTrust(info.Fingerprint, trustFromLabel(value)); err != nil {
 			dialog.ShowError(err, d.window)
 			return
 		}
-		d.setStatus("Nível de confiança atualizado")
+		d.setStatus("Trust level updated")
 	})
 	trustSelect.SetSelected(trustLabel(info.Metadata.Trust))
-	verified := widget.NewCheck("Fingerprint verificado fora de banda", func(checked bool) {
-		method := "comparação manual"
+	verified := widget.NewCheck("Fingerprint verified out-of-band", func(checked bool) {
+		method := "manual comparison"
 		if err := d.service.MarkVerified(info.Fingerprint, method, checked); err != nil {
 			dialog.ShowError(err, d.window)
 			return
 		}
-		d.setStatus("Estado de verificação atualizado")
+		d.setStatus("Verification state updated")
 	})
 	verified.SetChecked(info.Metadata.Verified)
-	trust := section("Confiança local", trustSelect, verified)
+	trust := section("Local trust", trustSelect, verified)
 
 	statusItems := []fyne.CanvasObject{}
 	if info.Revoked {
-		statusItems = append(statusItems, statusBadge("Esta chave foi revogada", false))
+		statusItems = append(statusItems, statusBadge("This key has been revoked", false))
 	}
 	if info.Expired {
-		statusItems = append(statusItems, statusBadge("Esta chave expirou", false))
+		statusItems = append(statusItems, statusBadge("This key has expired", false))
 	}
 	if !info.Revoked && !info.Expired {
-		statusItems = append(statusItems, statusBadge("Certificado utilizável", true))
+		statusItems = append(statusItems, statusBadge("Usable certificate", true))
 	}
 	statusItems = append(statusItems,
-		labeledValue("Criptografia", boolText(info.CanEncrypt)),
-		labeledValue("Verificação", boolText(info.CanVerify)),
+		labeledValue("Encryption", boolText(info.CanEncrypt)),
+		labeledValue("Verification", boolText(info.CanVerify)),
 	)
-	status := section("Estado", statusItems...)
+	status := section("Status", statusItems...)
 
-	serverButton := widget.NewButtonWithIcon("Publicar no servidor", theme.UploadIcon(), func() {
-		d.runAsync("Publicando chave pública…", func() error {
+	serverButton := widget.NewButtonWithIcon("Publish to server", theme.UploadIcon(), func() {
+		d.runAsync("Publishing public key...", func() error {
 			return d.service.UploadToKeyserver(context.Background(), info.Fingerprint)
-		}, func() { d.setStatus("Chave pública enviada ao servidor") })
+		}, func() { d.setStatus("Public key sent to server") })
 	})
-	revokeButton := widget.NewButtonWithIcon("Revogar chave…", theme.WarningIcon(), func() { d.showRevokeKey(info) })
+	revokeButton := widget.NewButtonWithIcon("Revoke key...", theme.WarningIcon(), func() { d.showRevokeKey(info) })
 	revokeButton.Importance = widget.DangerImportance
 	if !info.IsPrivate || info.Revoked {
 		revokeButton.Disable()
 	}
-	actions := section("Ações avançadas", container.NewHBox(serverButton, revokeButton))
+	actions := section("Advanced actions", container.NewHBox(serverButton, revokeButton))
 
 	content := container.NewVBox(
 		container.NewPadded(title),
@@ -283,7 +283,7 @@ func (d *Desktop) buildKeyDetails(info model.KeyInfo) fyne.CanvasObject {
 		canvas.NewLine(theme.Color(theme.ColorNameSeparator)),
 		facts,
 		fingerprint,
-		section("Identidades", uids),
+		section("Identities", uids),
 		trust,
 		status,
 		actions,
@@ -294,64 +294,64 @@ func (d *Desktop) buildKeyDetails(info model.KeyInfo) fyne.CanvasObject {
 
 func boolText(value bool) string {
 	if value {
-		return "Disponível"
+		return "Available"
 	}
-	return "Indisponível"
+	return "Unavailable"
 }
 
 func (d *Desktop) showGenerateKey() {
 	settings := d.service.Settings()
 	name := widget.NewEntry()
-	name.SetPlaceHolder("Nome completo")
+	name.SetPlaceHolder("Full name")
 	email := widget.NewEntry()
-	email.SetPlaceHolder("nome@exemplo.com")
+	email.SetPlaceHolder("name@example.com")
 	comment := widget.NewEntry()
-	comment.SetPlaceHolder("Opcional")
+	comment.SetPlaceHolder("Optional")
 	bits := widget.NewSelect([]string{"2048", "3072", "4096"}, nil)
 	bits.SetSelected(strconv.Itoa(settings.DefaultKeyBits))
 	expiry := widget.NewEntry()
 	expiry.SetText(strconv.Itoa(settings.DefaultExpiryDays))
 	passphrase := widget.NewPasswordEntry()
-	passphrase.SetPlaceHolder("Recomendado")
+	passphrase.SetPlaceHolder("Recommended")
 	confirm := widget.NewPasswordEntry()
-	confirm.SetPlaceHolder("Repita a frase secreta")
-	remember := widget.NewCheck("Guardar no cofre do sistema", nil)
+	confirm.SetPlaceHolder("Repeat the passphrase")
+	remember := widget.NewCheck("Store in system vault", nil)
 	remember.SetChecked(settings.RememberPassphrases)
-	strength := muted("Use uma frase longa e exclusiva.")
+	strength := muted("Use a long, unique passphrase.")
 	passphrase.OnChanged = func(value string) {
 		switch {
 		case len(value) == 0:
-			strength.SetText("Sem frase secreta: a chave será gravada sem proteção local.")
+			strength.SetText("No passphrase: the key will be stored without local protection.")
 		case len(value) < 12:
-			strength.SetText("Frase curta; prefira pelo menos 12 caracteres.")
+			strength.SetText("Short passphrase; use at least 12 characters.")
 		case len(value) < 20:
-			strength.SetText("Força razoável; uma frase maior é preferível.")
+			strength.SetText("Reasonable strength; a longer passphrase is preferred.")
 		default:
-			strength.SetText("Frase longa.")
+			strength.SetText("Long passphrase.")
 		}
 	}
 	form := widget.NewForm(
-		widget.NewFormItem("Nome", name),
-		widget.NewFormItem("E-mail", email),
-		widget.NewFormItem("Comentário", comment),
+		widget.NewFormItem("Name", name),
+		widget.NewFormItem("Email", email),
+		widget.NewFormItem("Comment", comment),
 		widget.NewFormItem("RSA", bits),
-		widget.NewFormItem("Validade (dias, 0 = nunca)", expiry),
-		widget.NewFormItem("Frase secreta", passphrase),
-		widget.NewFormItem("Confirmar", confirm),
+		widget.NewFormItem("Expiration (days, 0 = never)", expiry),
+		widget.NewFormItem("Passphrase", passphrase),
+		widget.NewFormItem("Confirm", confirm),
 	)
 	content := container.NewVBox(form, strength, remember)
-	prompt := dialog.NewCustomConfirm("Gerar nova chave", "Gerar", "Cancelar", content, func(ok bool) {
+	prompt := dialog.NewCustomConfirm("Generate new key", "Generate", "Cancel", content, func(ok bool) {
 		if !ok {
 			return
 		}
 		if passphrase.Text != confirm.Text {
-			dialog.ShowError(errors.New("as frases secretas não coincidem"), d.window)
+			dialog.ShowError(errors.New("passphrases do not match"), d.window)
 			return
 		}
 		keyBits, _ := strconv.Atoi(bits.Selected)
 		expiryDays, err := strconv.Atoi(strings.TrimSpace(expiry.Text))
 		if err != nil || expiryDays < 0 {
-			dialog.ShowError(errors.New("validade inválida"), d.window)
+			dialog.ShowError(errors.New("invalid expiration"), d.window)
 			return
 		}
 		req := model.KeyGenerationRequest{
@@ -365,13 +365,13 @@ func (d *Desktop) showGenerateKey() {
 		}
 		passphrase.SetText("")
 		confirm.SetText("")
-		d.runAsync("Gerando chave RSA…", func() error {
+		d.runAsync("Generating RSA key...", func() error {
 			_, err := d.service.GenerateKey(req)
 			return err
 		}, func() {
 			_ = d.reloadKeys()
 			d.showPage(pageKeyring)
-			d.setStatus("Nova chave criada")
+			d.setStatus("New key created")
 		})
 	}, d.window)
 	prompt.Resize(fyne.NewSize(620, 600))
@@ -393,13 +393,13 @@ func (d *Desktop) importKeyDialog() {
 			dialog.ShowError(err, d.window)
 			return
 		}
-		d.runAsync("Importando chave…", func() error {
+		d.runAsync("Importing key...", func() error {
 			_, err := d.service.Import(data)
 			return err
 		}, func() {
 			_ = d.reloadKeys()
 			d.showPage(pageKeyring)
-			d.setStatus("Chave importada")
+			d.setStatus("Key imported")
 		})
 	}, d.window).Show()
 }
@@ -410,7 +410,7 @@ func (d *Desktop) exportKeyDialog(info model.KeyInfo, private bool) {
 		return
 	}
 	if private {
-		dialog.ShowConfirm("Exportar chave secreta", "O arquivo conterá material criptográfico privado. Armazene-o em local seguro.", func(ok bool) {
+		dialog.ShowConfirm("Export secret key", "The file will contain private cryptographic material. Store it in a secure location.", func(ok bool) {
 			if ok {
 				d.saveExport(info, true)
 			}
@@ -448,7 +448,7 @@ func (d *Desktop) saveExport(info model.KeyInfo, private bool) {
 			dialog.ShowError(err, d.window)
 			return
 		}
-		d.setStatus("Chave exportada")
+		d.setStatus("Key exported")
 	}, d.window)
 	suffix := "-public.asc"
 	if private {
@@ -466,10 +466,10 @@ func (d *Desktop) deleteKeyDialog(info model.KeyInfo) {
 		}
 		_ = d.reloadKeys()
 		d.showPage(pageKeyring)
-		d.setStatus("Chave excluída")
+		d.setStatus("Key deleted")
 	}
 	if d.service.Settings().ConfirmBeforeDelete {
-		dialog.ShowConfirm("Excluir chave", "Excluir "+info.PrimaryIdentity()+" do chaveiro local? Esta ação não pode ser desfeita.", func(ok bool) {
+		dialog.ShowConfirm("Delete key", "Delete "+info.PrimaryIdentity()+" from the local keyring? This action cannot be undone.", func(ok bool) {
 			if ok {
 				perform()
 			}
@@ -481,69 +481,69 @@ func (d *Desktop) deleteKeyDialog(info model.KeyInfo) {
 
 func (d *Desktop) showFingerprintComparison(info model.KeyInfo) {
 	entry := widget.NewEntry()
-	entry.SetPlaceHolder("Cole o fingerprint recebido por um canal confiável")
-	result := muted("A comparação ignora espaços e caixa.")
+	entry.SetPlaceHolder("Paste the fingerprint received through a trusted channel")
+	result := muted("Comparison ignores spaces and case.")
 	compare := func() {
 		expected := strings.ReplaceAll(strings.ToUpper(info.Fingerprint), " ", "")
 		actual := strings.ReplaceAll(strings.ToUpper(entry.Text), " ", "")
 		if actual == "" {
-			result.SetText("Informe um fingerprint.")
+			result.SetText("Enter a fingerprint.")
 			return
 		}
 		if actual == expected {
-			result.SetText("Correspondência exata.")
-			_ = d.service.MarkVerified(info.Fingerprint, "comparação manual", true)
+			result.SetText("Exact match.")
+			_ = d.service.MarkVerified(info.Fingerprint, "manual comparison", true)
 		} else {
-			result.SetText("Não corresponde. Não confie nesta chave.")
+			result.SetText("Does not match. Do not trust this key.")
 		}
 	}
 	entry.OnChanged = func(string) { compare() }
 	content := container.NewVBox(
-		widget.NewLabel("Fingerprint local:"),
+		widget.NewLabel("Local fingerprint:"),
 		card(widget.NewLabel(formatFingerprint(info.Fingerprint))),
-		widget.NewLabel("Fingerprint externo:"), entry, result,
+		widget.NewLabel("External fingerprint:"), entry, result,
 	)
-	prompt := dialog.NewCustom("Comparar fingerprint", "Fechar", content, d.window)
+	prompt := dialog.NewCustom("Compare fingerprint", "Close", content, d.window)
 	prompt.Resize(fyne.NewSize(620, 360))
 	prompt.Show()
 }
 
 func (d *Desktop) showRevokeKey(info model.KeyInfo) {
-	reason := widget.NewSelect([]string{"Sem motivo", "Substituída", "Comprometida", "Aposentada"}, nil)
-	reason.SetSelected("Sem motivo")
+	reason := widget.NewSelect([]string{"No reason", "Superseded", "Compromised", "Retired"}, nil)
+	reason.SetSelected("No reason")
 	details := widget.NewMultiLineEntry()
-	details.SetPlaceHolder("Motivo opcional")
+	details.SetPlaceHolder("Optional reason")
 	passphrase := widget.NewPasswordEntry()
 	content := container.NewVBox(
-		widget.NewLabel("A revogação será incorporada à chave local e exportada com o certificado."),
+		widget.NewLabel("The revocation will be embedded in the local key and exported with the certificate."),
 		widget.NewForm(
-			widget.NewFormItem("Motivo", reason),
-			widget.NewFormItem("Descrição", details),
-			widget.NewFormItem("Frase secreta", passphrase),
+			widget.NewFormItem("Reason", reason),
+			widget.NewFormItem("Description", details),
+			widget.NewFormItem("Passphrase", passphrase),
 		),
 	)
-	prompt := dialog.NewCustomConfirm("Revogar chave", "Revogar", "Cancelar", content, func(ok bool) {
+	prompt := dialog.NewCustomConfirm("Revoke key", "Revoke", "Cancel", content, func(ok bool) {
 		if !ok {
 			return
 		}
 		code := packet.NoReason
 		switch reason.Selected {
-		case "Substituída":
+		case "Superseded":
 			code = packet.KeySuperseded
-		case "Comprometida":
+		case "Compromised":
 			code = packet.KeyCompromised
-		case "Aposentada":
+		case "Retired":
 			code = packet.KeyRetired
 		}
 		secret := []byte(passphrase.Text)
 		description := details.Text
 		passphrase.SetText("")
-		d.runAsync("Revogando chave…", func() error {
+		d.runAsync("Revoking key...", func() error {
 			return d.service.RevokeKey(info.Fingerprint, secret, code, description)
 		}, func() {
 			_ = d.reloadKeys()
 			d.showPage(pageKeyring)
-			d.setStatus("Chave revogada")
+			d.setStatus("Key revoked")
 		})
 	}, d.window)
 	prompt.Resize(fyne.NewSize(560, 360))
@@ -554,22 +554,22 @@ func (d *Desktop) showBackup() {
 	password := widget.NewPasswordEntry()
 	confirm := widget.NewPasswordEntry()
 	content := widget.NewForm(
-		widget.NewFormItem("Senha do backup", password),
-		widget.NewFormItem("Confirmar", confirm),
+		widget.NewFormItem("Backup password", password),
+		widget.NewFormItem("Confirm", confirm),
 	)
-	prompt := dialog.NewCustomConfirm("Backup criptografado", "Continuar", "Cancelar", content, func(ok bool) {
+	prompt := dialog.NewCustomConfirm("Encrypted backup", "Continue", "Cancel", content, func(ok bool) {
 		if !ok {
 			return
 		}
 		if password.Text != confirm.Text {
-			dialog.ShowError(errors.New("as senhas não coincidem"), d.window)
+			dialog.ShowError(errors.New("passwords do not match"), d.window)
 			return
 		}
 		secret := []byte(password.Text)
 		password.SetText("")
 		confirm.SetText("")
 		var archive []byte
-		d.runAsync("Criando backup…", func() error {
+		d.runAsync("Creating backup...", func() error {
 			var err error
 			archive, err = d.service.CreateBackup(secret)
 			return err
@@ -587,10 +587,10 @@ func (d *Desktop) showBackup() {
 					return
 				}
 				if err := d.service.MarkBackupCreated(); err != nil {
-					dialog.ShowError(fmt.Errorf("backup salvo, mas não foi possível atualizar o lembrete: %w", err), d.window)
+					dialog.ShowError(fmt.Errorf("backup saved, but the reminder could not be updated: %w", err), d.window)
 					return
 				}
-				d.setStatus("Backup criado")
+				d.setStatus("Backup created")
 			}, d.window)
 			save.SetFileName("pgp-client-" + time.Now().Format("20060102") + ".pgpbackup")
 			save.Show()
@@ -616,22 +616,22 @@ func (d *Desktop) showRestore() {
 			return
 		}
 		password := widget.NewPasswordEntry()
-		restoreSettings := widget.NewCheck("Restaurar também as preferências", nil)
+		restoreSettings := widget.NewCheck("Also restore preferences", nil)
 		content := container.NewVBox(password, restoreSettings)
-		prompt := dialog.NewCustomConfirm("Restaurar backup", "Restaurar", "Cancelar", content, func(ok bool) {
+		prompt := dialog.NewCustomConfirm("Restore backup", "Restore", "Cancel", content, func(ok bool) {
 			if !ok {
 				return
 			}
 			secret := []byte(password.Text)
 			includeSettings := restoreSettings.Checked
 			password.SetText("")
-			d.runAsync("Restaurando backup…", func() error {
+			d.runAsync("Restoring backup...", func() error {
 				_, err := d.service.RestoreBackup(archive, secret, includeSettings)
 				return err
 			}, func() {
 				_ = d.reloadKeys()
 				d.showPage(pageKeyring)
-				d.setStatus("Backup restaurado")
+				d.setStatus("Backup restored")
 			})
 		}, d.window)
 		prompt.Show()
@@ -640,13 +640,13 @@ func (d *Desktop) showRestore() {
 
 func (d *Desktop) showKeyserverSearch() {
 	query := widget.NewEntry()
-	query.SetPlaceHolder("E-mail, fingerprint ou Key ID")
+	query.SetPlaceHolder("Email, fingerprint or Key ID")
 	results := []model.KeyserverResult{}
 	list := widget.NewList(
 		func() int { return len(results) },
 		func() fyne.CanvasObject {
 			return container.NewVBox(
-				widget.NewLabelWithStyle("Identidade", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+				widget.NewLabelWithStyle("Identity", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				muted("Key ID"),
 				canvas.NewLine(theme.Color(theme.ColorNameSeparator)),
 			)
@@ -657,7 +657,7 @@ func (d *Desktop) showKeyserverSearch() {
 			}
 			result := results[id]
 			box := object.(*fyne.Container)
-			identity := "Sem identidade publicada"
+			identity := "No published identity"
 			if len(result.UserIDs) > 0 {
 				identity = result.UserIDs[0]
 			}
@@ -667,33 +667,33 @@ func (d *Desktop) showKeyserverSearch() {
 	)
 	selected := -1
 	list.OnSelected = func(id widget.ListItemID) { selected = id }
-	searchButton := widget.NewButtonWithIcon("Pesquisar", theme.SearchIcon(), func() {
+	searchButton := widget.NewButtonWithIcon("Search", theme.SearchIcon(), func() {
 		searchTerm := query.Text
-		d.runAsync("Consultando servidor…", func() error {
+		d.runAsync("Querying server...", func() error {
 			var err error
 			results, err = d.service.SearchKeyserver(context.Background(), searchTerm)
 			return err
 		}, func() {
 			list.Refresh()
-			d.setStatus(fmt.Sprintf("%d resultado(s)", len(results)))
+			d.setStatus(fmt.Sprintf("%d result(s)", len(results)))
 		})
 	})
 	query.OnSubmitted = func(string) { searchButton.OnTapped() }
-	importButton := widget.NewButtonWithIcon("Importar selecionada", theme.DownloadIcon(), func() {
+	importButton := widget.NewButtonWithIcon("Import selected", theme.DownloadIcon(), func() {
 		if selected < 0 || selected >= len(results) {
-			dialog.ShowError(errors.New("selecione um resultado"), d.window)
+			dialog.ShowError(errors.New("select a result"), d.window)
 			return
 		}
 		identifier := results[selected].Fingerprint
 		if identifier == "" {
 			identifier = results[selected].KeyID
 		}
-		d.runAsync("Baixando chave…", func() error {
+		d.runAsync("Downloading key...", func() error {
 			_, err := d.service.ImportFromKeyserver(context.Background(), identifier)
 			return err
 		}, func() {
 			_ = d.reloadKeys()
-			d.setStatus("Chave importada do servidor")
+			d.setStatus("Key imported from server")
 		})
 	})
 	content := container.NewBorder(
@@ -702,5 +702,5 @@ func (d *Desktop) showKeyserverSearch() {
 		list,
 	)
 	sizedContent := container.NewStack(spacer(720, 520), content)
-	dialog.NewCustom("Servidor de chaves", "Fechar", sizedContent, d.window).Show()
+	dialog.NewCustom("Keyserver", "Close", sizedContent, d.window).Show()
 }

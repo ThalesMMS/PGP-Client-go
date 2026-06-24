@@ -17,50 +17,50 @@ import (
 
 func (d *Desktop) buildEncryptPage() fyne.CanvasObject {
 	hasPendingFile := d.pendingFile != ""
-	message := container.NewTabItemWithIcon("Mensagem", theme.MailComposeIcon(), d.buildEncryptText())
-	file := container.NewTabItemWithIcon("Arquivo", theme.FileIcon(), d.buildEncryptFile())
+	message := container.NewTabItemWithIcon("Message", theme.MailComposeIcon(), d.buildEncryptText())
+	file := container.NewTabItemWithIcon("File", theme.FileIcon(), d.buildEncryptFile())
 	tabs := container.NewAppTabs(message, file)
 	tabs.SetTabLocation(container.TabLocationTop)
 	if hasPendingFile {
 		tabs.Select(file)
 	}
-	return container.NewBorder(container.NewPadded(heading("Criptografar")), nil, nil, nil, tabs)
+	return container.NewBorder(container.NewPadded(heading("Encrypt")), nil, nil, nil, tabs)
 }
 
 func (d *Desktop) buildDecryptPage() fyne.CanvasObject {
 	hasPendingFile := d.pendingFile != ""
-	message := container.NewTabItemWithIcon("Mensagem", theme.MailReplyIcon(), d.buildDecryptText())
-	file := container.NewTabItemWithIcon("Arquivo", theme.FileIcon(), d.buildDecryptFile())
+	message := container.NewTabItemWithIcon("Message", theme.MailReplyIcon(), d.buildDecryptText())
+	file := container.NewTabItemWithIcon("File", theme.FileIcon(), d.buildDecryptFile())
 	tabs := container.NewAppTabs(message, file)
 	tabs.SetTabLocation(container.TabLocationTop)
 	if hasPendingFile {
 		tabs.Select(file)
 	}
-	return container.NewBorder(container.NewPadded(heading("Descriptografar")), nil, nil, nil, tabs)
+	return container.NewBorder(container.NewPadded(heading("Decrypt")), nil, nil, nil, tabs)
 }
 
 func (d *Desktop) buildSignPage() fyne.CanvasObject {
 	hasPendingFile := d.pendingFile != ""
-	message := container.NewTabItemWithIcon("Mensagem", theme.DocumentCreateIcon(), d.buildSignText())
-	file := container.NewTabItemWithIcon("Arquivo", theme.FileIcon(), d.buildSignFile())
+	message := container.NewTabItemWithIcon("Message", theme.DocumentCreateIcon(), d.buildSignText())
+	file := container.NewTabItemWithIcon("File", theme.FileIcon(), d.buildSignFile())
 	tabs := container.NewAppTabs(message, file)
 	tabs.SetTabLocation(container.TabLocationTop)
 	if hasPendingFile {
 		tabs.Select(file)
 	}
-	return container.NewBorder(container.NewPadded(heading("Assinar")), nil, nil, nil, tabs)
+	return container.NewBorder(container.NewPadded(heading("Sign")), nil, nil, nil, tabs)
 }
 
 func (d *Desktop) buildVerifyPage() fyne.CanvasObject {
 	hasPendingFile := d.pendingFile != ""
-	message := container.NewTabItemWithIcon("Mensagem", theme.ConfirmIcon(), d.buildVerifyText())
-	file := container.NewTabItemWithIcon("Arquivo", theme.FileIcon(), d.buildVerifyFile())
+	message := container.NewTabItemWithIcon("Message", theme.ConfirmIcon(), d.buildVerifyText())
+	file := container.NewTabItemWithIcon("File", theme.FileIcon(), d.buildVerifyFile())
 	tabs := container.NewAppTabs(message, file)
 	tabs.SetTabLocation(container.TabLocationTop)
 	if hasPendingFile {
 		tabs.Select(file)
 	}
-	return container.NewBorder(container.NewPadded(heading("Verificar")), nil, nil, nil, tabs)
+	return container.NewBorder(container.NewPadded(heading("Verify")), nil, nil, nil, tabs)
 }
 
 func (d *Desktop) recipientSelector() (*widget.CheckGroup, map[string]string) {
@@ -89,8 +89,8 @@ func selectedFingerprints(group *widget.CheckGroup, lookup map[string]string) []
 }
 
 func (d *Desktop) signerSelector() (*widget.Select, map[string]string) {
-	options := []string{"Sem assinatura"}
-	lookup := map[string]string{"Sem assinatura": ""}
+	options := []string{"No signature"}
+	lookup := map[string]string{"No signature": ""}
 	for _, key := range d.keys {
 		if !key.IsPrivate || key.Revoked || key.Expired || !key.CanVerify {
 			continue
@@ -116,7 +116,7 @@ func (d *Desktop) privateKeySelector() (*widget.Select, map[string]string) {
 		lookup[label] = key.Fingerprint
 	}
 	if len(options) == 0 {
-		options = []string{"Nenhuma chave secreta disponível"}
+		options = []string{"No secret keys available"}
 		lookup[options[0]] = ""
 	}
 	selectWidget := widget.NewSelect(options, nil)
@@ -154,19 +154,19 @@ func (d *Desktop) confirmRecipientTrust(fingerprints []string, proceed func()) {
 		}
 		reasons := make([]string, 0, 2)
 		if !key.Metadata.Verified {
-			reasons = append(reasons, "fingerprint não verificado")
+			reasons = append(reasons, "fingerprint not verified")
 		}
 		if !trusted {
-			reasons = append(reasons, "confiança local: "+trustLabel(key.Metadata.Trust))
+			reasons = append(reasons, "local trust: "+trustLabel(key.Metadata.Trust))
 		}
-		warnings = append(warnings, fmt.Sprintf("• %s — %s", key.PrimaryIdentity(), strings.Join(reasons, "; ")))
+		warnings = append(warnings, fmt.Sprintf("- %s - %s", key.PrimaryIdentity(), strings.Join(reasons, "; ")))
 	}
 	if len(warnings) == 0 {
 		proceed()
 		return
 	}
-	message := "Revise os destinatários antes de criptografar:\n\n" + strings.Join(warnings, "\n") + "\n\nContinuar mesmo assim?"
-	dialog.ShowConfirm("Destinatários sem confiança confirmada", message, func(ok bool) {
+	message := "Review recipients before encrypting:\n\n" + strings.Join(warnings, "\n") + "\n\nContinue anyway?"
+	dialog.ShowConfirm("Recipients without confirmed trust", message, func(ok bool) {
 		if ok {
 			proceed()
 		}
@@ -175,11 +175,11 @@ func (d *Desktop) confirmRecipientTrust(fingerprints []string, proceed func()) {
 
 func recipientPanel(group *widget.CheckGroup) fyne.CanvasObject {
 	if len(group.Options) == 0 {
-		return card(statusBadge("Nenhuma chave apta para criptografia", false), muted("Importe a chave pública do destinatário ou use criptografia por senha."))
+		return card(statusBadge("No keys suitable for encryption", false), muted("Import the recipient public key or use password encryption."))
 	}
 	scroll := container.NewVScroll(group)
 	scroll.SetMinSize(fyne.NewSize(380, 150))
-	return card(widget.NewLabel("Destinatários"), scroll)
+	return card(widget.NewLabel("Recipients"), scroll)
 }
 
 func textEditor(placeHolder string) *widget.Entry {
@@ -191,10 +191,10 @@ func textEditor(placeHolder string) *widget.Entry {
 }
 
 func outputActions(window fyne.Window, output *widget.Entry, defaultName string, mode os.FileMode) fyne.CanvasObject {
-	copyButton := widget.NewButtonWithIcon("Copiar", theme.ContentCopyIcon(), func() {
+	copyButton := widget.NewButtonWithIcon("Copy", theme.ContentCopyIcon(), func() {
 		window.Clipboard().SetContent(output.Text)
 	})
-	saveButton := widget.NewButtonWithIcon("Salvar…", theme.DocumentSaveIcon(), func() {
+	saveButton := widget.NewButtonWithIcon("Save...", theme.DocumentSaveIcon(), func() {
 		d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 			if err != nil {
 				dialog.ShowError(err, window)
@@ -216,9 +216,9 @@ func outputActions(window fyne.Window, output *widget.Entry, defaultName string,
 func (d *Desktop) buildEncryptText() fyne.CanvasObject {
 	recipients, recipientLookup := d.recipientSelector()
 	signer, signerLookup := d.signerSelector()
-	symmetric := widget.NewCheck("Criptografar com senha em vez de chaves", nil)
+	symmetric := widget.NewCheck("Encrypt with password instead of keys", nil)
 	password := widget.NewPasswordEntry()
-	password.SetPlaceHolder("Senha da mensagem")
+	password.SetPlaceHolder("Message password")
 	password.Disable()
 	symmetric.OnChanged = func(checked bool) {
 		if checked {
@@ -229,17 +229,17 @@ func (d *Desktop) buildEncryptText() fyne.CanvasObject {
 			recipients.Enable()
 		}
 	}
-	armor := widget.NewCheck("ASCII armor (obrigatório para texto)", nil)
+	armor := widget.NewCheck("ASCII armor (required for text)", nil)
 	armor.SetChecked(true)
 	armor.Disable()
-	compress := widget.NewCheck("Comprimir antes de criptografar", nil)
+	compress := widget.NewCheck("Compress before encrypting", nil)
 	compress.SetChecked(true)
-	input := textEditor("Mensagem em texto claro")
-	output := textEditor("A mensagem criptografada aparecerá aqui")
+	input := textEditor("Plaintext message")
+	output := textEditor("The encrypted message will appear here")
 	output.Disable()
 
 	var encrypted []byte
-	encryptButton := widget.NewButtonWithIcon("Criptografar", theme.LoginIcon(), func() {
+	encryptButton := widget.NewButtonWithIcon("Encrypt", theme.LoginIcon(), func() {
 		req := model.EncryptRequest{
 			Plaintext:             []byte(input.Text),
 			RecipientFingerprints: selectedFingerprints(recipients, recipientLookup),
@@ -253,7 +253,7 @@ func (d *Desktop) buildEncryptText() fyne.CanvasObject {
 			req.Password = []byte(password.Text)
 		}
 		start := func() {
-			d.runPassphraseAware("Criptografando…", func(fingerprint string, passphrase []byte) error {
+			d.runPassphraseAware("Encrypting...", func(fingerprint string, passphrase []byte) error {
 				if fingerprint == req.SignerFingerprint {
 					req.SignerPassphrase = passphrase
 				}
@@ -264,7 +264,7 @@ func (d *Desktop) buildEncryptText() fyne.CanvasObject {
 				output.Enable()
 				output.SetText(string(encrypted))
 				output.Disable()
-				d.setStatus("Mensagem criptografada")
+				d.setStatus("Message encrypted")
 			})
 		}
 		if symmetric.Checked {
@@ -278,12 +278,12 @@ func (d *Desktop) buildEncryptText() fyne.CanvasObject {
 	left := container.NewVBox(
 		recipientPanel(recipients),
 		card(symmetric, password),
-		card(widget.NewForm(widget.NewFormItem("Assinar com", signer)), armor, compress),
+		card(widget.NewForm(widget.NewFormItem("Sign with", signer)), armor, compress),
 	)
 	right := container.NewVBox(
-		section("Entrada", input),
+		section("Input", input),
 		container.NewHBox(encryptButton),
-		section("Saída", outputActions(d.window, output, "message.asc", 0o644), output),
+		section("Output", outputActions(d.window, output, "message.asc", 0o644), output),
 	)
 	split := container.NewHSplit(container.NewVScroll(container.NewPadded(left)), container.NewVScroll(container.NewPadded(right)))
 	split.Offset = 0.35
@@ -301,9 +301,9 @@ func (d *Desktop) buildEncryptFile() fyne.CanvasObject {
 	}
 	armor := widget.NewCheck("ASCII armor", nil)
 	armor.SetChecked(d.service.Settings().DefaultArmor)
-	compress := widget.NewCheck("Comprimir", nil)
+	compress := widget.NewCheck("Compress", nil)
 	compress.SetChecked(true)
-	symmetric := widget.NewCheck("Usar senha em vez de destinatários", nil)
+	symmetric := widget.NewCheck("Use password instead of recipients", nil)
 	password := widget.NewPasswordEntry()
 	password.Disable()
 	symmetric.OnChanged = func(checked bool) {
@@ -332,7 +332,7 @@ func (d *Desktop) buildEncryptFile() fyne.CanvasObject {
 	}
 	inputRow := filePickerRow(d.window, inputPath, false, "")
 	outputRow := filePickerRow(d.window, outputPath, true, "encrypted.gpg")
-	button := widget.NewButtonWithIcon("Criptografar arquivo", theme.LoginIcon(), func() {
+	button := widget.NewButtonWithIcon("Encrypt file", theme.LoginIcon(), func() {
 		inputFile := inputPath.Text
 		outputFile := outputPath.Text
 		req := model.EncryptRequest{
@@ -346,12 +346,12 @@ func (d *Desktop) buildEncryptFile() fyne.CanvasObject {
 			req.Password = []byte(password.Text)
 		}
 		start := func() {
-			d.runPassphraseAware("Criptografando arquivo…", func(fingerprint string, passphrase []byte) error {
+			d.runPassphraseAware("Encrypting file...", func(fingerprint string, passphrase []byte) error {
 				if fingerprint == req.SignerFingerprint {
 					req.SignerPassphrase = passphrase
 				}
 				return d.service.EncryptFile(context.Background(), inputFile, outputFile, req)
-			}, func() { d.setStatus("Arquivo criptografado: " + outputFile) })
+			}, func() { d.setStatus("File encrypted: " + outputFile) })
 		}
 		if symmetric.Checked {
 			start()
@@ -362,30 +362,30 @@ func (d *Desktop) buildEncryptFile() fyne.CanvasObject {
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
 		card(widget.NewForm(
-			widget.NewFormItem("Arquivo", inputRow),
-			widget.NewFormItem("Destino", outputRow),
+			widget.NewFormItem("File", inputRow),
+			widget.NewFormItem("Destination", outputRow),
 		)),
 		recipientPanel(recipients),
 		card(symmetric, password),
-		card(widget.NewForm(widget.NewFormItem("Assinar com", signer)), armor, compress),
+		card(widget.NewForm(widget.NewFormItem("Sign with", signer)), armor, compress),
 		button,
 	)
 	return container.NewVScroll(container.NewPadded(content))
 }
 
 func (d *Desktop) buildDecryptText() fyne.CanvasObject {
-	input := textEditor("Cole uma mensagem PGP ASCII-armored")
+	input := textEditor("Paste an ASCII-armored PGP message")
 	password := widget.NewPasswordEntry()
-	password.SetPlaceHolder("Senha simétrica, se aplicável")
-	output := textEditor("O texto descriptografado aparecerá aqui")
+	password.SetPlaceHolder("Symmetric password, if applicable")
+	output := textEditor("The decrypted text will appear here")
 	output.Disable()
-	verification := container.NewMax(muted("Nenhuma verificação executada"))
+	verification := container.NewMax(muted("No verification performed"))
 	var decrypted model.DecryptResult
-	button := widget.NewButtonWithIcon("Descriptografar", theme.LogoutIcon(), func() {
+	button := widget.NewButtonWithIcon("Decrypt", theme.LogoutIcon(), func() {
 		ciphertext := []byte(input.Text)
 		symmetricPassword := []byte(password.Text)
 		passphrases := make(map[string][]byte)
-		d.runPassphraseAware("Descriptografando…", func(fingerprint string, passphrase []byte) error {
+		d.runPassphraseAware("Decrypting...", func(fingerprint string, passphrase []byte) error {
 			if fingerprint != "" {
 				passphrases[fingerprint] = passphrase
 			}
@@ -403,31 +403,31 @@ func (d *Desktop) buildDecryptText() fyne.CanvasObject {
 			output.Disable()
 			verification.Objects = []fyne.CanvasObject{decryptSignatureStatus(decrypted)}
 			verification.Refresh()
-			d.setStatus("Mensagem descriptografada")
+			d.setStatus("Message decrypted")
 		})
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
-		section("Mensagem PGP", input),
-		card(widget.NewForm(widget.NewFormItem("Senha simétrica (opcional)", password))),
+		section("PGP message", input),
+		card(widget.NewForm(widget.NewFormItem("Symmetric password (optional)", password))),
 		button,
-		section("Resultado", verification, outputActions(d.window, output, "decrypted.txt", 0o600), output),
+		section("Result", verification, outputActions(d.window, output, "decrypted.txt", 0o600), output),
 	)
 	return container.NewVScroll(container.NewPadded(content))
 }
 
 func decryptSignatureStatus(result model.DecryptResult) fyne.CanvasObject {
 	if !result.SignaturePresent {
-		return statusBadge("Mensagem sem assinatura embutida", false)
+		return statusBadge("Message has no embedded signature", false)
 	}
 	if result.SignatureValid {
-		text := "Assinatura válida"
+		text := "Valid signature"
 		if result.SignerKeyID != "" {
 			text += " · " + result.SignerKeyID
 		}
 		return statusBadge(text, true)
 	}
-	return statusBadge("Assinatura não validada: "+result.SignatureError, false)
+	return statusBadge("Signature not validated: "+result.SignatureError, false)
 }
 
 func (d *Desktop) buildDecryptFile() fyne.CanvasObject {
@@ -444,15 +444,15 @@ func (d *Desktop) buildDecryptFile() fyne.CanvasObject {
 		}
 	}
 	password := widget.NewPasswordEntry()
-	password.SetPlaceHolder("Somente para mensagens criptografadas por senha")
-	status := container.NewMax(muted("A assinatura, quando presente, será verificada."))
+	password.SetPlaceHolder("Only for password-encrypted messages")
+	status := container.NewMax(muted("The signature will be verified when present."))
 	var decrypted model.DecryptResult
-	button := widget.NewButtonWithIcon("Descriptografar arquivo", theme.LogoutIcon(), func() {
+	button := widget.NewButtonWithIcon("Decrypt file", theme.LogoutIcon(), func() {
 		inputFile := inputPath.Text
 		outputFile := outputPath.Text
 		symmetricPassword := []byte(password.Text)
 		passphrases := make(map[string][]byte)
-		d.runPassphraseAware("Descriptografando arquivo…", func(fingerprint string, passphrase []byte) error {
+		d.runPassphraseAware("Decrypting file...", func(fingerprint string, passphrase []byte) error {
 			if fingerprint != "" {
 				passphrases[fingerprint] = passphrase
 			}
@@ -465,15 +465,15 @@ func (d *Desktop) buildDecryptFile() fyne.CanvasObject {
 		}, func() {
 			status.Objects = []fyne.CanvasObject{decryptSignatureStatus(decrypted)}
 			status.Refresh()
-			d.setStatus("Arquivo descriptografado: " + outputFile)
+			d.setStatus("File decrypted: " + outputFile)
 		})
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
 		card(widget.NewForm(
-			widget.NewFormItem("Arquivo PGP", filePickerRow(d.window, inputPath, false, "")),
-			widget.NewFormItem("Destino", filePickerRow(d.window, outputPath, true, "decrypted.bin")),
-			widget.NewFormItem("Senha simétrica", password),
+			widget.NewFormItem("PGP file", filePickerRow(d.window, inputPath, false, "")),
+			widget.NewFormItem("Destination", filePickerRow(d.window, outputPath, true, "decrypted.bin")),
+			widget.NewFormItem("Symmetric password", password),
 		)),
 		status,
 		button,
@@ -483,26 +483,26 @@ func (d *Desktop) buildDecryptFile() fyne.CanvasObject {
 
 func signatureModeSelect() (*widget.Select, map[string]model.SignatureMode) {
 	lookup := map[string]model.SignatureMode{
-		"Assinatura destacada": model.SignatureDetached,
-		"Mensagem assinada":    model.SignatureInline,
-		"Texto claro assinado": model.SignatureCleartext,
+		"Detached signature": model.SignatureDetached,
+		"Signed message":     model.SignatureInline,
+		"Cleartext signed":   model.SignatureCleartext,
 	}
-	selectWidget := widget.NewSelect([]string{"Assinatura destacada", "Mensagem assinada", "Texto claro assinado"}, nil)
-	selectWidget.SetSelected("Assinatura destacada")
+	selectWidget := widget.NewSelect([]string{"Detached signature", "Signed message", "Cleartext signed"}, nil)
+	selectWidget.SetSelected("Detached signature")
 	return selectWidget, lookup
 }
 
 func (d *Desktop) buildSignText() fyne.CanvasObject {
 	signer, signerLookup := d.privateKeySelector()
 	mode, modeLookup := signatureModeSelect()
-	armor := widget.NewCheck("ASCII armor (obrigatório para texto)", nil)
+	armor := widget.NewCheck("ASCII armor (required for text)", nil)
 	armor.SetChecked(true)
 	armor.Disable()
-	input := textEditor("Texto ou mensagem a assinar")
-	output := textEditor("A assinatura aparecerá aqui")
+	input := textEditor("Text or message to sign")
+	output := textEditor("The signature will appear here")
 	output.Disable()
 	var signature []byte
-	button := widget.NewButtonWithIcon("Assinar", theme.DocumentCreateIcon(), func() {
+	button := widget.NewButtonWithIcon("Sign", theme.DocumentCreateIcon(), func() {
 		fingerprint := signerLookup[signer.Selected]
 		if fingerprint == "" {
 			dialog.ShowError(model.ErrNoPrivateKey, d.window)
@@ -515,7 +515,7 @@ func (d *Desktop) buildSignText() fyne.CanvasObject {
 			Armor:             armor.Checked,
 			UTF8:              true,
 		}
-		d.runPassphraseAware("Assinando…", func(requiredFingerprint string, passphrase []byte) error {
+		d.runPassphraseAware("Signing...", func(requiredFingerprint string, passphrase []byte) error {
 			if requiredFingerprint == fingerprint {
 				req.Passphrase = passphrase
 			}
@@ -526,18 +526,18 @@ func (d *Desktop) buildSignText() fyne.CanvasObject {
 			output.Enable()
 			output.SetText(string(signature))
 			output.Disable()
-			d.setStatus("Assinatura criada")
+			d.setStatus("Signature created")
 		})
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
 		card(widget.NewForm(
-			widget.NewFormItem("Chave secreta", signer),
-			widget.NewFormItem("Formato", mode),
+			widget.NewFormItem("Secret key", signer),
+			widget.NewFormItem("Format", mode),
 		), armor),
-		section("Conteúdo", input),
+		section("Content", input),
 		button,
-		section("Assinatura", outputActions(d.window, output, "signature.asc", 0o644), output),
+		section("Signature", outputActions(d.window, output, "signature.asc", 0o644), output),
 	)
 	return container.NewVScroll(container.NewPadded(content))
 }
@@ -578,7 +578,7 @@ func (d *Desktop) buildSignFile() fyne.CanvasObject {
 	if inputPath.Text != "" {
 		updateOutput()
 	}
-	button := widget.NewButtonWithIcon("Assinar arquivo", theme.DocumentCreateIcon(), func() {
+	button := widget.NewButtonWithIcon("Sign file", theme.DocumentCreateIcon(), func() {
 		fingerprint := signerLookup[signer.Selected]
 		if fingerprint == "" {
 			dialog.ShowError(model.ErrNoPrivateKey, d.window)
@@ -591,20 +591,20 @@ func (d *Desktop) buildSignFile() fyne.CanvasObject {
 			Mode:              modeLookup[mode.Selected],
 			Armor:             armor.Checked,
 		}
-		d.runPassphraseAware("Assinando arquivo…", func(requiredFingerprint string, passphrase []byte) error {
+		d.runPassphraseAware("Signing file...", func(requiredFingerprint string, passphrase []byte) error {
 			if requiredFingerprint == fingerprint {
 				req.Passphrase = passphrase
 			}
 			return d.service.SignFile(context.Background(), inputFile, outputFile, req)
-		}, func() { d.setStatus("Arquivo assinado: " + outputFile) })
+		}, func() { d.setStatus("File signed: " + outputFile) })
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
 		card(widget.NewForm(
-			widget.NewFormItem("Arquivo", filePickerRow(d.window, inputPath, false, "")),
-			widget.NewFormItem("Destino", filePickerRow(d.window, outputPath, true, "signature.asc")),
-			widget.NewFormItem("Chave secreta", signer),
-			widget.NewFormItem("Formato", mode),
+			widget.NewFormItem("File", filePickerRow(d.window, inputPath, false, "")),
+			widget.NewFormItem("Destination", filePickerRow(d.window, outputPath, true, "signature.asc")),
+			widget.NewFormItem("Secret key", signer),
+			widget.NewFormItem("Format", mode),
 		), armor),
 		button,
 	)
@@ -613,11 +613,11 @@ func (d *Desktop) buildSignFile() fyne.CanvasObject {
 
 func (d *Desktop) buildVerifyText() fyne.CanvasObject {
 	mode, modeLookup := signatureModeSelect()
-	data := textEditor("Dados originais (necessários para assinatura destacada)")
-	signature := textEditor("Cole a assinatura destacada ou a mensagem assinada")
-	output := textEditor("Conteúdo recuperado de uma assinatura inline/cleartext")
+	data := textEditor("Original data (required for detached signatures)")
+	signature := textEditor("Paste the detached signature or signed message")
+	output := textEditor("Content recovered from an inline/cleartext signature")
 	output.Disable()
-	status := container.NewMax(muted("Nenhuma verificação executada"))
+	status := container.NewMax(muted("No verification performed"))
 	mode.OnChanged = func(value string) {
 		if modeLookup[value] == model.SignatureDetached {
 			data.Enable()
@@ -626,14 +626,14 @@ func (d *Desktop) buildVerifyText() fyne.CanvasObject {
 		}
 	}
 	var verified model.VerifyResult
-	button := widget.NewButtonWithIcon("Verificar", theme.ConfirmIcon(), func() {
+	button := widget.NewButtonWithIcon("Verify", theme.ConfirmIcon(), func() {
 		req := model.VerifyRequest{
 			Data:      []byte(data.Text),
 			Signature: []byte(signature.Text),
 			Mode:      modeLookup[mode.Selected],
 			UTF8:      true,
 		}
-		d.runAsync("Verificando assinatura…", func() error {
+		d.runAsync("Verifying signature...", func() error {
 			var err error
 			verified, err = d.service.Verify(req)
 			return err
@@ -644,19 +644,19 @@ func (d *Desktop) buildVerifyText() fyne.CanvasObject {
 			output.SetText(string(verified.Data))
 			output.Disable()
 			if verified.Valid {
-				d.setStatus("Assinatura válida")
+				d.setStatus("Valid signature")
 			} else {
-				d.setStatus("Assinatura inválida ou não verificável")
+				d.setStatus("Invalid or unverifiable signature")
 			}
 		})
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
-		card(widget.NewForm(widget.NewFormItem("Formato", mode))),
-		section("Dados", data),
-		section("Assinatura ou mensagem assinada", signature),
+		card(widget.NewForm(widget.NewFormItem("Format", mode))),
+		section("Data", data),
+		section("Signature or signed message", signature),
 		button,
-		section("Resultado", status, outputActions(d.window, output, "verified.txt", 0o644), output),
+		section("Result", status, outputActions(d.window, output, "verified.txt", 0o644), output),
 	)
 	return container.NewVScroll(container.NewPadded(content))
 }
@@ -667,11 +667,11 @@ func verifyStatus(result model.VerifyResult) fyne.CanvasObject {
 		if identity == "<>" || identity == "" {
 			identity = result.SignerKeyID
 		}
-		return statusBadge("Assinatura válida · "+identity, true)
+		return statusBadge("Valid signature - "+identity, true)
 	}
 	message := result.SignatureErr
 	if message == "" {
-		message = "assinatura inválida ou chave pública ausente"
+		message = "invalid signature or missing public key"
 	}
 	return statusBadge(message, false)
 }
@@ -690,7 +690,7 @@ func (d *Desktop) buildVerifyFile() fyne.CanvasObject {
 		}
 		d.pendingFile = ""
 	}
-	status := container.NewMax(muted("Nenhuma verificação executada"))
+	status := container.NewMax(muted("No verification performed"))
 	mode.OnChanged = func(value string) {
 		if modeLookup[value] == model.SignatureDetached {
 			dataPath.Enable()
@@ -699,12 +699,12 @@ func (d *Desktop) buildVerifyFile() fyne.CanvasObject {
 		}
 	}
 	var verified model.VerifyResult
-	button := widget.NewButtonWithIcon("Verificar arquivo", theme.ConfirmIcon(), func() {
+	button := widget.NewButtonWithIcon("Verify file", theme.ConfirmIcon(), func() {
 		dataFile := dataPath.Text
 		signatureFile := signaturePath.Text
 		outputFile := outputPath.Text
 		req := model.VerifyRequest{Mode: modeLookup[mode.Selected]}
-		d.runAsync("Verificando arquivo…", func() error {
+		d.runAsync("Verifying file...", func() error {
 			var err error
 			verified, err = d.service.VerifyFile(context.Background(), dataFile, signatureFile, outputFile, req)
 			return err
@@ -712,19 +712,19 @@ func (d *Desktop) buildVerifyFile() fyne.CanvasObject {
 			status.Objects = []fyne.CanvasObject{verifyStatus(verified)}
 			status.Refresh()
 			if verified.Valid {
-				d.setStatus("Assinatura válida")
+				d.setStatus("Valid signature")
 			} else {
-				d.setStatus("Assinatura não validada")
+				d.setStatus("Signature not validated")
 			}
 		})
 	})
 	button.Importance = widget.HighImportance
 	content := container.NewVBox(
 		card(widget.NewForm(
-			widget.NewFormItem("Formato", mode),
-			widget.NewFormItem("Dados originais", filePickerRow(d.window, dataPath, false, "")),
-			widget.NewFormItem("Assinatura/mensagem", filePickerRow(d.window, signaturePath, false, "")),
-			widget.NewFormItem("Saída verificada (inline)", filePickerRow(d.window, outputPath, true, "verified.bin")),
+			widget.NewFormItem("Format", mode),
+			widget.NewFormItem("Original data", filePickerRow(d.window, dataPath, false, "")),
+			widget.NewFormItem("Signature/message", filePickerRow(d.window, signaturePath, false, "")),
+			widget.NewFormItem("Verified output (inline)", filePickerRow(d.window, outputPath, true, "verified.bin")),
 		)),
 		status,
 		button,

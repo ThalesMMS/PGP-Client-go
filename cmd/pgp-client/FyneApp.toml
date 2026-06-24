@@ -1,5 +1,5 @@
 Website = "https://github.com/ThalesMMS/PGP-Client-go"
-Description = "Cliente OpenPGP desktop para gerenciamento de chaves, criptografia e assinaturas digitais."
+Description = "Desktop OpenPGP client for key management, encryption and digital signatures."
 
 [Details]
 Icon = "../../assets/icon.png"

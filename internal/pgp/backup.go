@@ -50,7 +50,7 @@ type backupEnvelope struct {
 // and settings into an Argon2id + AES-256-GCM encrypted archive.
 func (s *Service) CreateBackup(password []byte) ([]byte, error) {
 	if len(password) < 8 {
-		return nil, errors.New("a senha do backup deve ter pelo menos 8 caracteres")
+		return nil, errors.New("backup password must be at least 8 characters")
 	}
 	keys, err := s.store.LoadAllKeys()
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *Service) CreateBackup(password []byte) ([]byte, error) {
 			armored, err = key.GetArmoredPublicKey()
 		}
 		if err != nil {
-			return nil, fmt.Errorf("serializar chave para backup: %w", err)
+			return nil, fmt.Errorf("serialize key for backup: %w", err)
 		}
 		armoredKeys = append(armoredKeys, armored)
 	}
@@ -81,7 +81,7 @@ func (s *Service) CreateBackup(password []byte) ([]byte, error) {
 		Settings:  s.Settings(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("serializar backup: %w", err)
+		return nil, fmt.Errorf("serialize backup: %w", err)
 	}
 	defer wipe(payloadBytes)
 
@@ -158,7 +158,7 @@ func (s *Service) RestoreBackup(archive, password []byte, restoreSettings bool) 
 	}
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, []byte(backupMagic))
 	if err != nil {
-		return nil, errors.New("senha incorreta ou backup adulterado")
+		return nil, errors.New("incorrect password or tampered backup")
 	}
 	defer wipe(plaintext)
 	var payload backupPayload
@@ -170,7 +170,7 @@ func (s *Service) RestoreBackup(archive, password []byte, restoreSettings bool) 
 	for _, armored := range payload.Keys {
 		infos, err := s.Import([]byte(armored))
 		if err != nil {
-			return nil, fmt.Errorf("restaurar chave: %w", err)
+			return nil, fmt.Errorf("restore key: %w", err)
 		}
 		restored = append(restored, infos...)
 	}
@@ -179,7 +179,7 @@ func (s *Service) RestoreBackup(archive, password []byte, restoreSettings bool) 
 		if err := s.store.UpdateMetadata(fingerprint, func(target *model.KeyMetadata) {
 			*target = metadata
 		}); err != nil {
-			return nil, fmt.Errorf("restaurar metadados de %s: %w", fingerprint, err)
+			return nil, fmt.Errorf("restore metadata for %s: %w", fingerprint, err)
 		}
 	}
 	if restoreSettings {

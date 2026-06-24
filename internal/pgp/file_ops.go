@@ -158,7 +158,7 @@ func (s *Service) DecryptFile(ctx context.Context, inputPath, outputPath string,
 		if required != nil {
 			return result, required
 		}
-		return result, fmt.Errorf("descriptografar arquivo: %w", err)
+		return result, fmt.Errorf("decrypt file: %w", err)
 	}
 	return result, nil
 }
@@ -199,7 +199,7 @@ func inspectEncryptionFile(path string) (encryptionEnvelope, error) {
 			return encryptionEnvelope{}, err
 		}
 		if block == nil || block.Type != "PGP MESSAGE" {
-			return encryptionEnvelope{}, errors.New("bloco ASCII armor não é uma mensagem PGP")
+			return encryptionEnvelope{}, errors.New("ASCII armor block is not a PGP message")
 		}
 		source = block.Body
 	}

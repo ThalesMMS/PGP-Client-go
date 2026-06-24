@@ -70,7 +70,7 @@ func formatFingerprint(fingerprint string) string {
 
 func formatDate(value time.Time) string {
 	if value.IsZero() {
-		return "—"
+		return "N/A"
 	}
 	return value.Local().Format("02 Jan 2006")
 }
@@ -78,37 +78,37 @@ func formatDate(value time.Time) string {
 func keyKind(info model.KeyInfo) string {
 	if info.IsPrivate {
 		if info.IsLocked {
-			return "Chave secreta protegida"
+			return "Protected secret key"
 		}
-		return "Chave secreta"
+		return "Secret key"
 	}
-	return "Chave pública"
+	return "Public key"
 }
 
 func trustLabel(level model.TrustLevel) string {
 	switch level {
 	case model.TrustNever:
-		return "Nunca confiar"
+		return "Never trust"
 	case model.TrustMarginal:
-		return "Confiança marginal"
+		return "Marginal trust"
 	case model.TrustFull:
-		return "Confiança plena"
+		return "Full trust"
 	case model.TrustUltimate:
-		return "Confiança definitiva"
+		return "Ultimate trust"
 	default:
-		return "Desconhecida"
+		return "Unknown"
 	}
 }
 
 func trustFromLabel(value string) model.TrustLevel {
 	switch value {
-	case "Nunca confiar":
+	case "Never trust":
 		return model.TrustNever
-	case "Confiança marginal":
+	case "Marginal trust":
 		return model.TrustMarginal
-	case "Confiança plena":
+	case "Full trust":
 		return model.TrustFull
-	case "Confiança definitiva":
+	case "Ultimate trust":
 		return model.TrustUltimate
 	default:
 		return model.TrustUnknown
@@ -134,7 +134,7 @@ func suggestedDecryptedPath(path string) string {
 
 func writeURI(writer fyne.URIWriteCloser, data []byte, mode os.FileMode) error {
 	if writer == nil {
-		return errors.New("destino inválido")
+		return errors.New("invalid destination")
 	}
 	uri := writer.URI()
 	_, writeErr := io.Copy(writer, bytes.NewReader(data))
@@ -154,7 +154,7 @@ func writeURI(writer fyne.URIWriteCloser, data []byte, mode os.FileMode) error {
 }
 
 func filePickerRow(window fyne.Window, entry *widget.Entry, save bool, suggested string) fyne.CanvasObject {
-	button := widget.NewButtonWithIcon("Escolher…", theme.FolderOpenIcon(), func() {
+	button := widget.NewButtonWithIcon("Choose...", theme.FolderOpenIcon(), func() {
 		if save {
 			// A FileSave dialog creates/truncates the selected file before the
 			// cryptographic operation starts. Select the directory instead and let

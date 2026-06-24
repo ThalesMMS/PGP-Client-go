@@ -1,6 +1,6 @@
-# Desenvolvimento
+# Development
 
-## Comandos principais
+## Main Commands
 
 ```bash
 go mod download
@@ -10,27 +10,27 @@ go test -tags ci ./...
 go test -race -tags ci ./...
 ```
 
-A tag `ci` substitui o driver gráfico do Fyne por um driver em memória. Para executar a aplicação real, instale as dependências nativas do sistema e use:
+The `ci` tag replaces Fyne's graphical driver with an in-memory driver. To run the real application, install the native system dependencies and use:
 
 ```bash
 go run ./cmd/pgp-client
 ```
 
-## Convenções
+## Conventions
 
-- Regras criptográficas ficam em `internal/pgp`, nunca em callbacks da UI.
-- Escritas que produzem artefatos finais devem usar `internal/fileutil`.
-- Não registre plaintext, frases secretas, chaves privadas ou conteúdo de backup.
-- Novos caminhos de rede devem ter timeout, limite de resposta e política explícita de TLS/redirecionamento.
-- Erros de assinatura devem ser distinguidos de erros de parsing, I/O e ausência de chave.
-- Testes não devem acessar keyservers reais nem o cofre real do sistema.
+- Cryptographic rules belong in `internal/pgp`, never in UI callbacks.
+- Writes that produce final artifacts should use `internal/fileutil`.
+- Do not log plaintext, passphrases, private keys or backup contents.
+- New network paths must have a timeout, response limit and explicit TLS/redirect policy.
+- Signature errors should be distinguished from parsing, I/O and missing-key errors.
+- Tests must not access real keyservers or the real system vault.
 
-## Dependências
+## Dependencies
 
-Atualize versões deliberadamente e execute a suíte completa. Para alterações em Fyne, valide pelo menos:
+Update versions deliberately and run the full suite. For Fyne changes, validate at least:
 
-- renderização headless com `-tags ci`;
-- build nativo no sistema de destino;
-- diálogos de arquivos;
-- arrastar e soltar;
-- pacote produzido por `fyne package`.
+- headless rendering with `-tags ci`;
+- native build on the target system;
+- file dialogs;
+- drag and drop;
+- the package produced by `fyne package`.

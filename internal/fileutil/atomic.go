@@ -24,7 +24,7 @@ type PendingFile struct {
 // on the same filesystem. The destination directory is created when needed.
 func NewPending(destination string, fileMode, directoryMode fs.FileMode) (*PendingFile, error) {
 	if strings.TrimSpace(destination) == "" {
-		return nil, errors.New("caminho de saída vazio")
+		return nil, errors.New("empty output path")
 	}
 	directory := filepath.Dir(destination)
 	if err := os.MkdirAll(directory, directoryMode); err != nil {
@@ -49,10 +49,10 @@ func NewPending(destination string, fileMode, directoryMode fs.FileMode) (*Pendi
 // Commit flushes and closes the temporary file before replacing the target.
 func (pending *PendingFile) Commit() error {
 	if pending == nil || pending.File == nil {
-		return errors.New("arquivo temporário inválido")
+		return errors.New("invalid temporary file")
 	}
 	if pending.committed {
-		return errors.New("arquivo temporário já confirmado")
+		return errors.New("temporary file already committed")
 	}
 	if err := pending.File.Sync(); err != nil {
 		_ = pending.File.Close()

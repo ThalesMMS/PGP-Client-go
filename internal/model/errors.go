@@ -6,15 +6,15 @@ import (
 )
 
 var (
-	ErrKeyNotFound         = errors.New("chave OpenPGP não encontrada")
-	ErrNoRecipients        = errors.New("nenhum destinatário selecionado")
-	ErrNoPrivateKey        = errors.New("nenhuma chave privada compatível disponível")
-	ErrNoVerificationKeys  = errors.New("nenhuma chave pública disponível para verificação")
-	ErrPassphraseRequired  = errors.New("frase secreta necessária")
-	ErrPasswordRequired    = errors.New("senha simétrica necessária")
-	ErrInvalidPassphrase   = errors.New("frase secreta inválida")
-	ErrUnsupportedKeySize  = errors.New("tamanho de chave RSA não suportado")
-	ErrInvalidBackupFormat = errors.New("formato de backup inválido")
+	ErrKeyNotFound         = errors.New("OpenPGP key not found")
+	ErrNoRecipients        = errors.New("no recipients selected")
+	ErrNoPrivateKey        = errors.New("no compatible private key available")
+	ErrNoVerificationKeys  = errors.New("no public keys available for verification")
+	ErrPassphraseRequired  = errors.New("passphrase required")
+	ErrPasswordRequired    = errors.New("symmetric password required")
+	ErrInvalidPassphrase   = errors.New("invalid passphrase")
+	ErrUnsupportedKeySize  = errors.New("unsupported RSA key size")
+	ErrInvalidBackupFormat = errors.New("invalid backup format")
 )
 
 // PassphraseRequiredError lets the UI prompt for one specific secret key.
